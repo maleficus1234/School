@@ -1,0 +1,120 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import System
+import System.IO
+import System.CodeDom.Compiler
+import System.Reflection
+
+namespace Pie:
+
+	// Provides the entry point of the application.
+	type Program:
+		// Entry point
+		shared act Main(args):
+			if args == null:
+				throw NullReferenceException()
+			// If there are fewer than 3 args, something is incorrect in the command line.
+			if args.Length < 3:
+				System.Console.WriteLine(@"Arguments must be of the form <output> <test|notest> <source files>")
+				return
+
+			// Check that the second argument is valid.
+			if args[1] != "test" && args[1] != "notest":
+				System.Console.WriteLine("Second argument must be notest or test")
+				return
+
+			// Delete and recreate the sensor repository file if it exists.
+			if File.Exists("AllSensors.txt"):
+				File.Delete("AllSensors.txt")
+			w = File.CreateText("AllSensors.txt")
+			w.Close()
+
+			// Setup the compiler options: these are required by the C# Compiler.
+			parameters = CompilerParameters()
+			parameters.ReferencedAssemblies.Add(@"System.Core.dll")
+			parameters.ReferencedAssemblies.Add(@"Microsoft.CSharp.dll")
+			parameters.ReferencedAssemblies.Add(@"System.dll")
+			parameters.ReferencedAssemblies.Add(System.IO.Directory.GetCurrentDirectory() + @"\\"+ "Irony.dll")
+			
+			parameters.GenerateInMemory = false
+			// Generate an executable if the requested file name ends in exe.
+			if args[0].EndsWith("exe"):
+				parameters.GenerateExecutable = true
+			parameters.IncludeDebugInformation = false
+			parameters.OutputAssembly = args[0]
+
+			// Load all source files from file.
+			sources = list()
+			for i = 2; i < args.Length; i++:
+				if !File.Exists(args[i]):
+					System.Console.WriteLine("File not found: " + args[i])
+					return
+				System.Console.WriteLine("Loading: " + args[i])
+				sources.Add(File.ReadAllText(args[i]))
+
+			// Create the compiler, and have it track sensor activation if testing is enabled.
+			compiler = PieCompiler()
+			if args[1] == "test":
+				PieCompiler.trackSensors = true
+
+			// Compile!
+			results = compiler.CompileAssemblyFromSource(parameters, sources, false)
+
+			if results != null:
+				// Output any error messages.
+				for e in results.Errors:
+					System.Console.WriteLine(e.Line + " " + e.FileName + ": " + e.ErrorText)
+
+				// If there's no errors and testing was requested, do test coverage analysis.
+				if results.Errors.Count == 0 && PieCompiler.trackSensors:
+					System.Console.WriteLine("Running tests")
+					if File.Exists("PassedSensors.txt"):
+						File.Delete("PassedSensors.txt")
+					w = File.CreateText("PassedSensors.txt")
+					w.Close()
+
+					// Get all types in the built assembly, and find all tests.
+					failedTests = 0.0
+					passedTests = 0.0
+					types = results.CompiledAssembly.GetTypes()
+					for t in types:
+						methods = t.GetMethods()
+						for m in methods:
+							if m.IsStatic && m.Name.StartsWith("PieTestzkyz_"):
+								name = m.Name.Substring(12)
+								try: // If an exception is thrown during the test, it fails.
+									m.Invoke(null, null)
+									passedTests+=1
+								catch e:
+									System.Console.WriteLine("Test " + t.FullName + "." + name + " failed")
+									System.Console.WriteLine(e.InnerException.Message)
+									failedTests+=1
+					// Display the number of tests that passed compared to the total number.
+					System.Console.WriteLine(passedTests + "/" + (failedTests + passedTests) + " tests passed")
+					
+					if !File.Exists("AllSensors.txt") || !File.Exists("PassedSensors.txt"):
+						System.Console.WriteLine("Coverage record files (AllSensors.txt or PassedSensors.txt) are missing.")
+						return
+					// Read all sensors and all activated sensors, to determine coverage.
+					allSensorGuids = File.ReadAllLines("AllSensors.txt")
+					allSensors = map()
+					for s in allSensorGuids:
+						allSensors.Add(s, false)
+					allPassedGuids = File.ReadAllLines("PassedSensors.txt")
+					for s in allPassedGuids:
+						if allSensors.ContainsKey(s):
+							allSensors[s] = true
+					passedCount = 0.0
+					for v in allSensors.Values:
+						if v:
+							passedCount+=1
+					// Display the test coverage!
+					System.Console.WriteLine("Test coverage: " + (passedCount / allSensors.Count) * 100.0 + "%")
+
+			System.Console.WriteLine("Done.")

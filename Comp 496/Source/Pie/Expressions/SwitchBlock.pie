@@ -1,0 +1,133 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A switch block expression
+	type SwitchBlock(Expression):
+		
+		// The expression to be tested against by all the child cases.
+		public Expression
+
+		// Construct a new switch block expression with the given parent.
+		new(parent):
+			base(parent)
+			this.Expression = Expression(this)
+
+		// Define the grammatical rules for the switch block expression.
+		shared act DefineRules(grammar):
+			grammar.CaseBlock = NonTerminal("CaseBlock")
+			grammar.CaseBlock.Rule = grammar.ToTerm("case") + grammar.ExpressionRule + ":" + grammar.Eos + grammar.MethodBody
+			grammar.CaseBlock.Rule |= grammar.ToTerm("else") + ":" + grammar.Eos + grammar.MethodBody
+			grammar.CaseBlockList = NonTerminal("CaseBlockList")
+			grammar.CaseBlockList.Rule = grammar.MakePlusRule(grammar.CaseBlockList, grammar.CaseBlock)
+			grammar.SwitchBody = NonTerminal("SwitchBody")
+			grammar.SwitchBody.Rule = grammar.Indent + grammar.CaseBlockList + grammar.Dedent
+			grammar.SwitchBlockRule = NonTerminal("SwitchBlock")
+			grammar.SwitchBlockRule.Rule = grammar.ToTerm("switch") + grammar.ExpressionRule + ":" + grammar.Eos + grammar.SwitchBody
+
+		// Construct a switch block expression from the given parse node.
+		shared act Build(parser, parent, node):
+			sw = SwitchBlock(parent)
+			parent.Children.Add(sw)
+			parser.ConsumeParseTree(sw.Expression, node.ChildNodes[1])
+			for child in node.ChildNodes[2].ChildNodes[0].ChildNodes:
+				parser.ConsumeParseTree(sw, child)
+
+		// Refine the expression prior to emitting C# code.
+		override act Refine():
+			ScopeStack.Push(Scope)
+			Expression.Refine()
+			base.Refine()
+			ScopeStack.Pop(Scope)
+
+		// Generate the C# code for the expression.
+		override func Emit():
+			source = ""
+			for child in Children:
+				source += child.Emit()
+			return source
+
+		// Test the first case works correctly
+		test Case1:
+			source = @"
+module foo:
+	func bar():
+		x = 1
+		switch x:
+			case 1:
+				return 1
+			case 2:
+				return 2
+			else:
+				return 1234
+
+			"
+
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 1
+
+		// Test the second case works correctly
+		test Case2:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		switch x:
+			case 1:
+				return 1
+			case 2:
+				return 2
+			else:
+				return 1234
+
+			"
+
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 2
+
+		// Test the else case works correctly
+		test Else:
+			source = @"
+module foo:
+	func bar():
+		x = 25
+		switch x:
+			case 1:
+				return 1
+			case 2:
+				return 2
+			else:
+				return 1234
+
+			"
+
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 1234
+

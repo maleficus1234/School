@@ -1,0 +1,76 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A test declaration expression
+	type TestDeclaration(Expression):
+
+		// Construct a new test declaration expression with this parent expression.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for this expression.
+		shared act DefineRules(grammar):
+			grammar.TestDeclarationRule = NonTerminal("TestDeclaration")
+			grammar.TestDeclarationRule.Rule = grammar.ToTerm("test") + grammar.Identifier + ":" + grammar.Eos + grammar.MethodBody
+
+		// Construct a new test declaration expression from the given parse node.
+		shared act Build(parser, parent, node):
+			t = TestDeclaration(parent)
+			parent.Children.Add(t)
+			t.Name= node.ChildNodes[1].FindTokenAndGetText()
+			parser.ConsumeParseTree(t, node.ChildNodes[2])
+
+		// Refine this expression prior to generating C# code.
+		override act Refine():
+			ScopeStack.Push(Scope)
+			base.Refine()
+			ScopeStack.Pop(Scope)
+
+		// Generate C# code for this expression.
+		override func Emit():
+			source = ""
+			source += @"public static void PieTestzkyz_" + Name + @"()\n"
+			source += @"{\n"
+			for child in Children:
+				source += child.Emit()
+			source += @"}\n"
+			return source
+
+		// Test that an empty unit test compiles
+		test Empty:
+			source = @"
+module foo:
+	test bar:
+
+			"
+
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+
+		// Test that a successful test passes
+		test Pass:
+			source = @"
+module foo:
+	test bar:
+		assert true
+			"
+
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+

@@ -1,0 +1,19 @@
+import System
+
+// Test the FizzBuzz algorithm: a "super hard" algorithm often used to weed out people
+// in job interviews: if a number is divisible by 3, output fizz. If a number is divisible by
+// 5, output buzz. If a number is divisible by 15, output fizzbuzz. In all other cases output
+// the number.                            
+module bar:
+	void FizzBuzz(int x):
+		if x % 3 == 0:
+			Console.Write("Fizz")
+		if x % 5 == 0: 
+			Console.Write("Buzz")
+		if x % 5 != 0 && x % 3 != 0:
+			Console.Write(x.ToString())
+		Console.WriteLine()
+
+	void Main():
+		for int i in 1 to 100:
+			FizzBuzz(i)

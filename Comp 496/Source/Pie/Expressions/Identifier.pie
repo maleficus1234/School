@@ -1,0 +1,33 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A simple identifier expression. This is a name, whether it be a variable or type name.
+	type Identifier(Expression):
+
+		// Constructs a new identifier expression from the given parent expression.
+		new(parent):
+			base(parent)
+
+		// Construct a new identifier expression from the given parse node.
+		shared act Build(parser, parent, node):
+			i = Identifier(parent)
+			parent.Children.Add(i)
+			i.Name = node.FindTokenAndGetText()
+			// If it is the "this" keyword, it must be made explicitely dynamic or the dynamic runtime
+			// will get confused!
+			if i.Name == "this":
+				i.Name = "(this as dynamic)"
+
+		// Produce the C# code for this expression.
+		override func Emit():
+			return Name

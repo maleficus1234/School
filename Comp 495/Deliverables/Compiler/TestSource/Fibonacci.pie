@@ -1,0 +1,30 @@
+﻿import System
+
+module FibonacciTest:
+
+	int Fibonacci(int x):
+
+		if x <= 1 return x
+		return Fibonacci(x-2) + Fibonacci(x-1)
+
+	void Main():
+
+		bool keepRunning = true
+		while keepRunning:
+
+			Console.WriteLine("Enter which number in the Fibonacci sequence to calculate.")
+			Console.WriteLine("Sequence position should be non-negative, and less than 40.")
+			Console.WriteLine("This is a brute force Fibonacci algorithm: higher sequence")
+			Console.WriteLine("positions will take a very long time to calculate.")
+			Console.WriteLine("Enter q to exit.")
+			String s = Console.ReadLine()
+
+			int x
+			if s == "q" keepRunning = false
+			else:
+				if Int32.TryParse(s, out x):
+					if x < 0 Console.WriteLine("\nThe number must be non-negative.\n")
+					else Console.WriteLine("\nThe number at position " + x + " is: " + Fibonacci(x) + "\n")
+				else:
+					Console.WriteLine("\nUnable to parse this number.\n")
+

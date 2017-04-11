@@ -1,0 +1,109 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// Pie's foreach equivalent: "for x in y:"
+	type ForEachLoop(Expression):
+
+		// True if the variable being used to iterate (x in the above example) is newly created
+		// in this for loop.
+		public createVar
+		// The initializing variable expression.
+		public Init
+		// The object being iterated over.
+		public Condition
+		// The guid of this expression: used to detect code coverage as a loop is a fork in code.
+		public guid = ""
+
+		// Constructs a foreach expression with the given parent expression.
+		new(parent):
+			base(parent)
+			// Default to assuming that the variable is a new one.
+			createVar = false
+			// Create stub expressions for Init and Condition.
+			Init = Expression(this)
+			Condition = Expression(this)
+		
+		// Define the grammatical rules for a for each loop.
+		shared act DefineRules(grammar):
+			grammar.ForEachLoopRule = NonTerminal("ForEachLoop")
+			grammar.ForEachLoopRule.Rule = grammar.ToTerm("for") + grammar.QualifiedIdentifier + "in" + grammar.ExpressionRule + ":" + grammar.Eos + grammar.MethodBody
+			grammar.ForEachLoopRule.Rule |= grammar.ToTerm("for") + grammar.QualifiedIdentifier + "in" + grammar.ExpressionRule + grammar.Statement
+
+		// Build a for each loop expression from the given parse node.
+		shared act Build(parser, parent, node):
+			f = ForEachLoop(parent)
+			// Assign a guid so that the expression can be uniquely identified for code coverage analysis.
+			f.guid = System.Guid.NewGuid().ToString()
+			// Write the guid for this sensor to a file for reference in the analysis after compilation.
+			writer = System.IO.File.AppendText("AllSensors.txt")
+			writer.WriteLine(f.guid.ToString())
+			writer.Dispose()
+			parent.Children.Add(f)
+			// Construct the initializer variable, condition, and body from their respective nodes.
+			parser.ConsumeParseTree(f.Init, node.ChildNodes[1])
+			parser.ConsumeParseTree(f.Condition, node.ChildNodes[3])
+			parser.ConsumeParseTree(f, node.ChildNodes[4])
+
+		// Propagate imports to the initializer and condition expressions.
+		override act PropagateImport(i):
+			Init.PropagateImport(i)
+			Condition.PropagateImport(i)
+			base.PropagateImport(i)
+
+		// Pass the recursive refinements to the initializer and condition.
+		// Push and pop the scope of this expression while this expression and it's body
+		// are refined.
+		override act Refine():
+			ScopeStack.Push(Scope)
+			Init.Refine()
+			Condition.Refine()
+			base.Refine()
+			ScopeStack.Pop(Scope)
+
+		// Emit the C# code for this expression.
+		override func Emit():
+			source = ""
+			source += "foreach("
+			source += " dynamic "
+			source += Init.Emit()
+			source += " in "
+			source += Condition.Emit()
+			source += @") {\n"
+			source += "PiezkyzCoverage.PassedSensor(\\\"" + guid + "\\\");"
+			source += base.Emit()
+			source += @"}\n"
+			return source
+
+		// Test that the foreach expression can iterate over a collection correctly.
+		test Enumerable:
+			source = @"
+module foo:
+	func bar2():
+		l = list()
+		l.Add(1)
+		l.Add(3)
+		l.Add(4)
+		l.Add(9)
+		x = 0
+		for i in l:
+			x += i
+		return x
+			"
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar2").Invoke(null, null)
+			assert x == 17

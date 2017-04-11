@@ -1,0 +1,10 @@
+module SimpleTest:
+
+	func TestMethod(x):
+		if x:
+			return 1234
+		else:
+			return 1337
+
+	test Method:
+		assert TestMethod(true) == 1234

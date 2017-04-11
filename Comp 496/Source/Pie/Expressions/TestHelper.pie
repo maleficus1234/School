@@ -1,0 +1,41 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import System.CodeDom.Compiler
+import Microsoft.CSharp
+import System.Reflection
+
+namespace Pie:
+
+	// Simple helper for compilationtest cases.
+	module TestHelper:
+
+		// The compiler: shared so it's only compiled the first time it's used.
+		shared Compiler = null
+
+		// Compile the given source code, and do not output the C#.
+		shared func Compile(source):
+			return Compile(source, false)
+
+		// Compile the given source code, and output the C# if showSource is true.
+		shared func Compile(source, showSource):
+			if Compiler == null: 
+				Compiler = PieCompiler()
+			sources = list()
+			sources.Add(source)
+
+			options = CompilerParameters()
+			options.ReferencedAssemblies.Add("C:/Program Files (x86)/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.5.2/System.Core.dll")
+			options.ReferencedAssemblies.Add("C:/Program Files (x86)/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.5.2/System.dll")
+			options.ReferencedAssemblies.Add("C:/Program Files (x86)/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.5.2/Microsoft.CSharp.dll")
+			options.GenerateInMemory = true
+			r = Compiler.CompileAssemblyFromSource(options, sources, showSource)
+			for e in r.Errors:
+				System.Console.WriteLine(e)
+			return r
+

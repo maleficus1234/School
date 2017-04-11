@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<lom xmlns="http://ltsc.ieee.org/xsd/LOM" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://ltsc.ieee.org/xsd/LOM http://ltsc.ieee.org/xsd/lomv1.0/lom.xsd">
+<general><identifier>
+<catalog>Athabasca University</catalog>
+<entry>Comp 601</entry>
+</identifier>
+<title><string>Pie 0.3 Language Specification</string>
+</title>
+<language>eng-CA</language>
+<description><string language="eng-CA">Pie is a concise, dynamic type, general-purpose programming language designed with existing and future programming demands in mind. Pie supports unit testing, test coverage analysis, distributed data and processing, embedded C++, and the procedural, object-oriented, and functional programming paradigms.</string>
+</description>
+<keyword><string language="eng-CA">Programming Language</string>
+<string>Pie</string>
+<string>C++</string>
+</keyword>
+<keyword><string language="eng-CA">Distributed Computing</string>
+<string>Cloud Computing</string>
+<string>Supercomputers</string>
+<string>Distributed Data</string>
+<string>Parallelization</string>
+</keyword>
+<keyword><string>Unit Testing</string>
+<string>Test Coverage Analysis</string>
+</keyword>
+<aggregationLevel><source>LOMv1.0</source>
+<value>1</value></aggregationLevel>
+</general>
+<lifeCycle><version><string language="eng-CA">0.3</string>
+</version>
+<contribute>
+<role><source>LOMv1.0</source>
+<value>author</value></role>
+<entity>
+<![CDATA[BEGIN:VCARD
+VERSION:3.0
+N:Bell;Jason;;;
+FN:Jason Bell
+EMAIL;TYPE=INTERNET:maleficus1234@gmail.com
+ORG:Athabasca University
+END:VCARD]]></entity>
+<date><dateTime>2017-04-02</dateTime>
+<description><string language="eng-CA">Author of the language specification</string>
+</description>
+</date>
+</contribute>
+</lifeCycle>
+<metaMetadata><identifier>
+<catalog>Athabasca University</catalog>
+<entry>Comp 601</entry>
+</identifier>
+<contribute>
+<role><source>LOMv1.0</source>
+<value>creator</value></role>
+<entity>
+<![CDATA[BEGIN:VCARD
+VERSION:3.0
+N:Bell;Jason;;;
+FN:Jason Bell
+EMAIL;TYPE=INTERNET:maleficus1234@gmail.com
+ORG:Athabasca University
+END:VCARD]]></entity>
+<date><dateTime>2017-04-02</dateTime>
+<description><string language="eng-CA">Generator of the metadata</string>
+</description>
+</date>
+</contribute>
+<language>eng-CA</language>
+</metaMetadata>
+<technical><format>text/pdf</format>
+<size>500</size>
+<otherPlatformRequirements><string language="eng-CA">PDF Viewer</string>
+</otherPlatformRequirements>
+</technical>
+<educational><learningResourceType><source>LOMv1.0</source>
+<value>problem statement</value></learningResourceType>
+<interactivityLevel><source>LOMv1.0</source>
+<value>low</value></interactivityLevel>
+<intendedEndUserRole><source>LOMv1.0</source>
+<value>learner</value></intendedEndUserRole>
+<context><source>LOMv1.0</source>
+<value>training</value></context>
+<typicalAgeRange><string language="eng-CA">16+</string>
+</typicalAgeRange>
+<typicalLearningTime><duration>P3D</duration>
+<description><string language="eng-CA">This is a relatively simple specification that existing programmers should have no trouble with.</string>
+</description>
+</typicalLearningTime>
+<language>eng-CA</language>
+</educational>
+<rights><cost><source>LOMv1.0</source>
+<value>no</value></cost>
+<copyrightAndOtherRestrictions><source>LOMv1.0</source>
+<value>no</value></copyrightAndOtherRestrictions>
+<description><string language="eng-CA">Completely free to view and use.</string>
+</description>
+</rights>
+<classification><purpose><source>LOMv1.0</source>
+<value>educational objective</value></purpose>
+</classification>
+</lom>

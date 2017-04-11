@@ -1,0 +1,67 @@
+﻿import  System,
+		System.Collections.Generic,
+		System.IO,
+		System.CodeDom.Compiler,
+		Pie
+
+module Program:
+
+	void Main(String [] args):
+
+		String outputFile = ""
+
+		var filenames = new List{String}()
+
+		// Iterate through all command line arguments.
+		for int i in args.Length - 1:
+
+			// Using GetValue because indexers haven't been implemented yet!
+			String arg = args[i] as String
+
+			// Check if it's a command line option rather than a source file.
+			if arg.StartsWith("/"):
+				// Check if it's the output file command
+				if arg.StartsWith("/out:"):
+					// Check if an output file has already been specified.
+					if outputFile != "":
+						Console.WriteLine("More than one output file specified.")
+						return
+					outputFile = arg.Substring(5)
+
+			else: // It's a filename
+				filenames.Add(arg)
+
+		if outputFile == "":
+			Console.WriteLine("No output file specified.")
+			return
+
+		if filenames.Count == 0:
+			Console.WriteLine("No source files specified.")
+			return
+
+		Console.WriteLine("Compiling to output file: " + outputFile)
+
+		var parameters = new CompilerParameters()
+		parameters.GenerateInMemory = false
+		if outputFile.EndsWith("exe") parameters.GenerateExecutable = true
+		else if outputFile.EndsWith("dll") parameters.GenerateExecutable = false
+		else:
+			Console.WriteLine("Unknown extension on output file.")
+			return
+
+		parameters.OutputAssembly = outputFile
+
+		var compiler = new PieCodeProvider()
+		CompilerResults results = null
+		try:
+			results = compiler.CompileAssemblyFromFile(parameters, filenames.ToArray())
+		catch Exception ex:
+			Console.WriteLine(ex)
+			return
+		
+		Console.WriteLine("Compiler errors found: " + results.Errors.Count)
+
+		for int i in 0 to results.Errors.Count - 1:
+			var error = results.Errors[i]
+			Console.WriteLine(error.ErrorText)
+

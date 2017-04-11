@@ -1,0 +1,303 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import System
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A literal expression: number and string literals.
+	type Literal(Expression):
+
+		// The "value" of this literal: the actual string or number.
+		public Value
+		// Allow line breaks in string literals?
+		public AllowLineBreaks = false
+
+		// Construct a new literal expression with the given parent expression.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for literal expression.
+		shared act DefineRules(grammar):
+			grammar.LiteralRule = NonTerminal("Literal")
+			// String literals should allow line breaks, double quotes, and @ for multi-line strings.
+			grammar.StringLiteral = StringLiteral("StringLiteral", "\\\"", StringOptions.AllowsAllEscapes | StringOptions.AllowsDoubledQuote)
+			grammar.StringLiteral.AddPrefix("@", StringOptions.AllowsLineBreak | StringOptions.AllowsAllEscapes | StringOptions.AllowsDoubledQuote)
+			grammar.LiteralRule.Rule = grammar.StringLiteral
+			// Create number literals where floating point defaults to double and integer defaults to int32.
+			grammar.NumberLiteral = NumberLiteral("NumberLiteral", NumberOptions.AllowStartEndDot)
+			grammar.NumberLiteral.DefaultFloatType = TypeCode.Double
+
+			// The pre and post fixes for different number types and formats.
+			grammar.NumberLiteral.AddPrefix("0x", NumberOptions.Hex)
+			grammar.NumberLiteral.AddSuffix("b", TypeCode.Byte)
+			grammar.NumberLiteral.AddSuffix("sb", TypeCode.SByte)
+			grammar.NumberLiteral.AddSuffix("s", TypeCode.Int16)
+			grammar.NumberLiteral.AddSuffix("ui", TypeCode.UInt32)
+			grammar.NumberLiteral.AddSuffix("i", TypeCode.Int32)
+			grammar.NumberLiteral.AddSuffix("us", TypeCode.UInt16)
+			grammar.NumberLiteral.AddSuffix("L", TypeCode.Int64)
+			grammar.NumberLiteral.AddSuffix("ul", TypeCode.UInt64)
+			grammar.NumberLiteral.AddSuffix("f", TypeCode.Single)
+			grammar.NumberLiteral.AddSuffix("d", TypeCode.Double)
+			grammar.NumberLiteral.AddSuffix("m", TypeCode.Decimal)
+
+			grammar.LiteralRule.Rule |= grammar.NumberLiteral
+
+		// Builds a new literal expression from the given parse node.
+		shared act Build(parser, parent, node):
+			l = Literal(parent)
+			parent.Children.Add(l)
+			l.Value = node.ChildNodes[0].Token.Value
+			if node.ChildNodes[0].Token != null:
+				if node.ChildNodes[0].Token.Details != null:
+					details = node.ChildNodes[0].Token.Details as Irony.Parsing.CompoundTerminalBase.CompoundTokenDetails
+					if details.Prefix == "@":
+						l.AllowLineBreaks = true
+
+			/*
+	            if(node.Token.Details != null)
+                if (((Irony.Parsing.CompoundTerminalBase.CompoundTokenDetails)node.Token.Details).Prefix == "@")
+                    l.AllowLineBreaks = true;
+					*/
+
+		// Emit the C# code for this expression.
+		override func Emit():
+			source = " "
+			if Value is string:
+				if AllowLineBreaks:
+					source += "@"
+				source += "\\\""
+			if Value is byte:
+				source += "(byte)"
+			if Value is sbyte:
+				source += "(sbyte)"
+			if Value is short:
+				source += "(short)"
+			if Value is int:
+				source += "(int)"
+			if Value is long:
+				source += "(long)"
+			if Value is ushort:
+				source += "(ushort)"
+			if Value is uint:
+				source += "(uint)"
+			if Value is ulong:
+				source += "(ulong)"
+			if Value is float:
+				source += "(float)"
+			if Value is double:
+				source += "(double)"
+			if Value is decimal:
+				source += "(decimal)"
+            
+			source += Value
+
+			if Value is string:
+				source += "\\\""
+			return source
+
+
+		
+		// The default integer type in Pie is 32 bit.
+		test DefaultInteger:
+			source = @"
+module foo:
+	func bar():
+		return 1234
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is int
+			assert x == 1234
+
+		// The default floating point type in Pie is 64 bit.
+		test DefaultFloating:
+			source = @"
+module foo:
+	func bar():
+		return 1234.7
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is double
+			assert x == 1234.7
+
+		// Hexadecimal
+		test Hex:
+			source = @"
+module foo:
+	func bar():
+		return 0xFF
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is int
+			assert x == 255
+
+		// Unsigned byte
+		test Byte:
+			source = @"
+module foo:
+	func bar():
+		return 12b
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is byte
+			assert x == 12
+
+		// Signed byte
+		test SByte:
+			source = @"
+module foo:
+	func bar():
+		return 12sb
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is sbyte
+			assert x == 12
+
+		// Signed 16 bit integer
+		test Int16:
+			source = @"
+module foo:
+	func bar():
+		return 1234s
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is short
+			assert x == 1234
+
+		// Unsigned 16 bit integer
+		test UInt16:
+			source = @"
+module foo:
+	func bar():
+		return 1234us
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is ushort
+			assert x == 1234
+
+		// Signed 32 bit integer
+		test Int32:
+			source = @"
+module foo:
+	func bar():
+		return 1234i
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is int
+			assert x == 1234
+
+		// Unsigned 32 bit integer
+		test UInt32:
+			source = @"
+module foo:
+	func bar():
+		return 1234ui
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is uint
+			assert x == 1234
+
+		// Signed 64 bit integer
+		test Int64:
+			source = @"
+module foo:
+	func bar():
+		return 1234L
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is long
+			assert x == 1234
+
+		// Unsigned 64 bit integer
+		test UInt64:
+			source = @"
+module foo:
+	func bar():
+		return 1234ul
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is ulong
+			assert x == 1234
+
+		// 32 bit floating point number
+		test Float:
+			source = @"
+module foo:
+	func bar():
+		return 1234.7f
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is float
+			assert x == 1234.7f
+
+		// 64 bit floating point number
+		test Double:
+			source = @"
+module foo:
+	func bar():
+		return 1234.7d
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is double
+			assert x == 1234.7
+
+		// 128 bit floating point number
+		test Decimal:
+			source = @"
+module foo:
+	func bar():
+		return 1234.7m
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is decimal
+			assert x == 1234.7m
+
+		// Single line string
+	/*	test SimpleString:
+			source = @"
+module foo:
+	func bar():
+		return \\\"this is a single line string\\\"
+			"
+			result = TestHelper.Compile(source)
+			x = result.CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x is string
+			assert x == "this is a single line string"*/
+
+		// Multi-line string
+		test MultilineString:
+			x = @"
+this
+is
+a
+multiline string!
+			"
+			assert x is string
+			assert x == @"
+this
+is
+a
+multiline string!
+			"

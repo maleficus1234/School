@@ -1,0 +1,66 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// An expression obtained by "accessing" another expression via a period. For example, "Foo.Bar".
+	// The grammatical rule for this expression is defined in PieGrammar.pie, because of it's simplicity.
+	type AccessedExpression(Expression):
+
+		// True if this expression references a type
+		public IsType
+
+		// Construct a new AccessedExpression, with the given parent expression
+		new(parent):
+			base(parent)
+			IsType = false
+
+		// Build a new AccessedExpression from the given parse node.
+		shared act Build(parser, parent, node):
+			a = AccessedExpression(parent)
+			parent.Children.Add(a)
+			// Expression to the left of the period.
+			parser.ConsumeParseTree(a, node.ChildNodes[0])
+			// Expression to the right of the period.
+			parser.ConsumeParseTree(a, node.ChildNodes[2])
+		
+		// Perform any necessary refinments to convert to C#.
+		// If the left hand expression is "base", this is a base call. It is important to
+		// keep track of this, as the dynamic runtime get's confused by base invocations, so they
+		// need to be made static typed. For example, "base.foo" becomes "(base as Object).foo
+		override act Refine():
+			if Children[0].Name == "base":
+				PropagateIsBaseCall() // Inform all child expressions that they are called from a base call.
+			base.Refine()
+		
+		// Generate the C# code for this expression
+		override func Emit():
+			source = ""
+			
+			if !(Parent is AccessedExpression):
+				if IsType:
+					source += " new "
+			source += Children[0].Emit()
+			source += "."
+			source += Children[1].Emit()
+			return source
+
+		// Test that accessed expressions work correctly.
+		test Simple:
+			source = @"
+module foo:
+	func bar():
+		x = list()
+		x.Add(1234)
+		return x
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x[0] == 1234

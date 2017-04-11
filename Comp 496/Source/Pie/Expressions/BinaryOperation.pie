@@ -1,0 +1,234 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A binary operation expression: <, >, ||, &&, |, &, ^, ==, !=, <=, >=, <<, >>, +, -, *, /, %, is, as 
+    type BinaryOperation(Expression):
+
+		// The left operand
+		public Left
+		// The right operand
+		public Right
+		// The operator type
+		public OperatorType = ""
+
+		// Construct a new binary operation expression with the given parent expression
+		new(parent):
+			base(parent)
+			Left = Expression(this)
+			Right = Expression(this)
+
+		// Define the grammatical rules for this binary expression
+		shared act DefineRules(grammar):
+			grammar.BinaryOperators = NonTerminal("BinaryOperators")
+			grammar.BinaryOperators.Rule = grammar.ToTerm("<") | "||" | "&&" | "|" | "^" | "&" | "==" | "!=" | ">" | "<=" | ">=" | "<<" | ">>" | "+" | "-" | "*" | "/" | "%" | "is" | "as"
+			grammar.MarkTransient(grammar.BinaryOperators)
+
+			grammar.BinaryOperationRule = NonTerminal("BinaryOperation")
+			grammar.BinaryOperationRule.Rule = grammar.ExpressionRule + grammar.BinaryOperators + grammar.ExpressionRule
+
+		// Construct a binary operation expression from the given parse node
+		shared act Build(parser, parent, node):
+			c = BinaryOperation(parent)
+			parent.Children.Add(c)
+			// Construct the left operand
+			parser.ConsumeParseTree(c.Left, node.ChildNodes[0])
+			c.OperatorType = node.ChildNodes[1].FindTokenAndGetText()
+			// Construct the right operand
+			parser.ConsumeParseTree(c.Right, node.ChildNodes[2])
+
+		// Pass the Refine recursion down to the left and right operand expressions.
+		override act Refine():
+			Left.Refine()
+			Right.Refine()
+		
+		// Generate the C# code for this expression
+		override func Emit():
+			source = ""
+			source += Left.Emit()
+			source += " " + OperatorType + " "
+			source += Right.Emit()
+			return source
+
+		/////////////////////////////////////////////////////////////////////////////////////
+		// Tests: each tests that a binary operator works as intended
+		/////////////////////////////////////////////////////////////////////////////////////
+
+		test Add:
+			source = @"
+module foo:
+	func bar():
+		return 2 + 3
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 5
+
+		test Subtract:
+			source = @"
+module foo:
+	func bar():
+		return 2 - 3
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == -1
+
+		test Multiply:
+			source = @"
+module foo:
+	func bar():
+		return 2 * 3
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 6
+
+		test Divide:
+			source = @"
+module foo:
+	func bar():
+		return 4 / 2
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 2
+		test Precedence:
+			source = @"
+module foo:
+	func bar():
+		return 2 + 3 * 4
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 14
+
+		test ShiftLeft:
+			source = @"
+module foo:
+	func bar():
+		return 2 << 2
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 8
+
+		test ShiftRight:
+			source = @"
+module foo:
+	func bar():
+		return 22 >> 2
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 5
+
+		test Modulus:
+			source = @"
+module foo:
+	func bar():
+		return 5 % 2
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 1
+
+		test GreaterThan:
+			source = @"
+module foo:
+	func bar():
+		return 3 > 2
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test GreaterThanEqual:
+			source = @"
+module foo:
+	func bar():
+		return 3 >= 2
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test Equal:
+			source = @"
+module foo:
+	func bar():
+		return 3 == 3
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test LessThan:
+			source = @"
+module foo:
+	func bar():
+		return 3 < 4
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test LessThanEqual:
+			source = @"
+module foo:
+	func bar():
+		return 4 <= 4
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test NotEqual:
+			source = @"
+module foo:
+	func bar():
+		return 3 != 2
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test And1:
+			source = @"
+module foo:
+	func bar():
+		return true & true
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test And2:
+			source = @"
+module foo:
+	func bar():
+		return true & false
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == false
+
+		test Xor:
+			source = @"
+module foo:
+	func bar():
+		return 0xff0fffffi ^ 0xfffffff0i
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 0x00f0000fi
+
+		test Or1:
+			source = @"
+module foo:
+	func bar():
+		return true | true
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		test Or2:
+			source = @"
+module foo:
+	func bar():
+		return true | false
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == true

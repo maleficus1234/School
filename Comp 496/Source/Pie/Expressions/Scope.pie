@@ -1,0 +1,127 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A variable held in a scope
+	type Variable:
+		public FullName = ""
+
+	// A scope containing variables for a code block: a method declaration, an if statement, loops, etc.
+	// Important so that the Pie compiler can determine if a variable is newly declared or pre-existing.
+	type Scope:
+
+		// Import declarations that this scope is aware of.
+		public ImportDeclarations = list()
+		// Variables found in this scope.
+		public Variables = list()
+		
+		// First test that a new variable is declared, then test that the second reference
+		// to it is aware that it already exists.
+		test Simple:
+			source = @"
+module foo:
+	func bar():
+		x = 9
+		x = 12
+		return x
+
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 12
+
+		// Test that a variable is detected as a new one when created from a method.
+		test Method:
+			source = @"
+module foo:
+	func bar():
+		x = TestMethod(1234)
+		return x
+
+	func TestMethod(x):
+		return x
+
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 1234
+
+		// Test if block scoping if condition is true
+		test If1:
+			source = @"
+module foo:
+	func bar():
+		x = 1234
+		if true:
+			x = 31
+		return x
+
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 31
+
+		// Test if block scoping if condition is false
+		test If2:
+			source = @"
+module foo:
+	func bar():
+		x = 1234
+		if false:
+			x = 31
+		return x
+
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 1234
+
+		// Test else block scoping if condition is false
+		test If3:
+			source = @"
+module foo:
+	func bar():
+		x = 1234
+		if false:
+			x = 31
+		else:
+			x = 1337
+		return x
+
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 1337

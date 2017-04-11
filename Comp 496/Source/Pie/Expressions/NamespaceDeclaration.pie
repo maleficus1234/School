@@ -1,0 +1,92 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A namespace declaration expression
+	type NamespaceDeclaration(Expression):
+
+		// Construct a new namespace expression with the given parent expression
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for this expression
+		shared act DefineRules(grammar):
+			grammar.NamespaceDeclarationRule = NonTerminal("NamespaceDeclaration")
+
+			grammar.NamespaceMember = NonTerminal("NamespaceMember")
+			grammar.NamespaceMember.Rule = grammar.ImportDeclarationRule
+			grammar.NamespaceMember.Rule |= grammar.NamespaceDeclarationRule
+			grammar.NamespaceMember.Rule |= grammar.TypeDeclarationRule
+
+			grammar.NamespaceMemberList = NonTerminal("NamespaceMemberList")
+			grammar.NamespaceMemberList.Rule = grammar.MakeStarRule(grammar.NamespaceMemberList, grammar.NamespaceMember)
+			grammar.NamespaceMemberList.Rule |= grammar.Empty
+
+			grammar.NamespaceBody = NonTerminal("NamespaceBody")
+			grammar.NamespaceBody.Rule = grammar.Indent + grammar.NamespaceMemberList + grammar.Dedent
+			grammar.NamespaceBody.Rule |= grammar.Empty
+
+			grammar.NamespaceDeclarationRule.Rule = grammar.ToTerm("namespace") + grammar.QualifiedIdentifier + ":" + grammar.Eos + grammar.NamespaceBody
+
+		// Construct a namespace declaration expression from the given parse node.
+		shared act Build(parser, parent, node):
+			lastEx = parent
+			for name in node.ChildNodes[1].ChildNodes:
+				n = NamespaceDeclaration(lastEx)
+				lastEx.Children.Add(n)
+				n.Name = name.FindTokenAndGetText()
+				lastEx = n
+			parser.ConsumeParseTree(lastEx, node.ChildNodes[2])
+
+		// Get the fully qualified name for this namespace expression.
+		override func GetFullName():
+			if Parent == null:
+				return Name
+			else:
+				if Parent is NamespaceDeclaration:
+					return Parent.GetFullName() + "." + Name
+				else:
+					return Name
+
+		// Generates the C# code for this expression
+		override func Emit():
+			source = " namespace " + Name + @"{\n"
+			source += base.Emit()
+			source += @"}\n"
+			return source
+
+		// Test that a single namespace compiles
+		test Single:
+			source = @"
+namespace bar:
+
+			"
+
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+
+		// Test that a multiple namespace compiles
+		test Multiple:
+			source = @"
+namespace bar.foo:
+
+			"
+
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+

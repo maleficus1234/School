@@ -1,0 +1,501 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://P2PWebService" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://P2PWebService" xmlns:intf="http://P2PWebService" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<!--WSDL created by Apache Axis version: 1.4
+Built on Apr 22, 2006 (06:55:48 PDT)-->
+ <wsdl:types>
+  <schema elementFormDefault="qualified" targetNamespace="http://P2PWebService" xmlns="http://www.w3.org/2001/XMLSchema">
+   <element name="isShared">
+    <complexType>
+     <sequence>
+      <element name="username" type="xsd:string"/>
+      <element name="filename" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="isSharedResponse">
+    <complexType>
+     <sequence>
+      <element name="isSharedReturn" type="xsd:boolean"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="authorize">
+    <complexType>
+     <sequence>
+      <element name="username" type="xsd:string"/>
+      <element name="password" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="authorizeResponse">
+    <complexType>
+     <sequence>
+      <element name="authorizeReturn" type="xsd:boolean"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="updateAddress">
+    <complexType>
+     <sequence>
+      <element name="username" type="xsd:string"/>
+      <element name="address" type="xsd:string"/>
+      <element name="port" type="xsd:int"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="updateAddressResponse">
+    <complexType/>
+   </element>
+   <element name="getSharedFiles">
+    <complexType>
+     <sequence>
+      <element name="username" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="getSharedFilesResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="getSharedFilesReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="stopShare">
+    <complexType>
+     <sequence>
+      <element name="username" type="xsd:string"/>
+      <element name="filename" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="stopShareResponse">
+    <complexType/>
+   </element>
+   <element name="sayHello">
+    <complexType/>
+   </element>
+   <element name="sayHelloResponse">
+    <complexType>
+     <sequence>
+      <element name="sayHelloReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="share">
+    <complexType>
+     <sequence>
+      <element name="username" type="xsd:string"/>
+      <element name="filename" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="shareResponse">
+    <complexType/>
+   </element>
+   <element name="findFile">
+    <complexType>
+     <sequence>
+      <element name="username" type="xsd:string"/>
+      <element name="filename" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="findFileResponse">
+    <complexType>
+     <sequence>
+      <element maxOccurs="unbounded" name="findFileReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+  </schema>
+ </wsdl:types>
+
+   <wsdl:message name="shareRequest">
+
+      <wsdl:part element="impl:share" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="findFileResponse">
+
+      <wsdl:part element="impl:findFileResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="sayHelloRequest">
+
+      <wsdl:part element="impl:sayHello" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="shareResponse">
+
+      <wsdl:part element="impl:shareResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="updateAddressResponse">
+
+      <wsdl:part element="impl:updateAddressResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="authorizeRequest">
+
+      <wsdl:part element="impl:authorize" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="stopShareResponse">
+
+      <wsdl:part element="impl:stopShareResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="authorizeResponse">
+
+      <wsdl:part element="impl:authorizeResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="isSharedRequest">
+
+      <wsdl:part element="impl:isShared" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="updateAddressRequest">
+
+      <wsdl:part element="impl:updateAddress" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="findFileRequest">
+
+      <wsdl:part element="impl:findFile" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="isSharedResponse">
+
+      <wsdl:part element="impl:isSharedResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="getSharedFilesResponse">
+
+      <wsdl:part element="impl:getSharedFilesResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="getSharedFilesRequest">
+
+      <wsdl:part element="impl:getSharedFiles" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="sayHelloResponse">
+
+      <wsdl:part element="impl:sayHelloResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="stopShareRequest">
+
+      <wsdl:part element="impl:stopShare" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:portType name="Service">
+
+      <wsdl:operation name="isShared">
+
+         <wsdl:input message="impl:isSharedRequest" name="isSharedRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:isSharedResponse" name="isSharedResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="authorize">
+
+         <wsdl:input message="impl:authorizeRequest" name="authorizeRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:authorizeResponse" name="authorizeResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="updateAddress">
+
+         <wsdl:input message="impl:updateAddressRequest" name="updateAddressRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:updateAddressResponse" name="updateAddressResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getSharedFiles">
+
+         <wsdl:input message="impl:getSharedFilesRequest" name="getSharedFilesRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:getSharedFilesResponse" name="getSharedFilesResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="stopShare">
+
+         <wsdl:input message="impl:stopShareRequest" name="stopShareRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:stopShareResponse" name="stopShareResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="sayHello">
+
+         <wsdl:input message="impl:sayHelloRequest" name="sayHelloRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:sayHelloResponse" name="sayHelloResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="share">
+
+         <wsdl:input message="impl:shareRequest" name="shareRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:shareResponse" name="shareResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="findFile">
+
+         <wsdl:input message="impl:findFileRequest" name="findFileRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:findFileResponse" name="findFileResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+   </wsdl:portType>
+
+   <wsdl:binding name="ServiceSoapBinding" type="impl:Service">
+
+      <wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+      <wsdl:operation name="isShared">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="isSharedRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="isSharedResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="authorize">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="authorizeRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="authorizeResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="updateAddress">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="updateAddressRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="updateAddressResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="getSharedFiles">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="getSharedFilesRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="getSharedFilesResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="stopShare">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="stopShareRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="stopShareResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="sayHello">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="sayHelloRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="sayHelloResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="share">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="shareRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="shareResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="findFile">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="findFileRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="findFileResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+   </wsdl:binding>
+
+   <wsdl:service name="ServiceService">
+
+      <wsdl:port binding="impl:ServiceSoapBinding" name="Service">
+
+         <wsdlsoap:address location="http://localhost:8080/P2PWebService/services/Service"/>
+
+      </wsdl:port>
+
+   </wsdl:service>
+
+</wsdl:definitions>

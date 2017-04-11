@@ -1,0 +1,58 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A qualified import name: import foo.bar, bar.foo, etc
+	type QualifiedImport(Expression):
+		
+		// The set of identifiers that make up this qualified import
+		Identifiers = list()
+
+		// Construct a new qualified import expression with the given parent expression.
+		new(parent):
+			base(parent)
+
+		// Construct a new qualified import expression from the given parse node.
+		shared act Build(parser, parent, node):
+			i = QualifiedImport(parent)
+			parent.Children.Add(i)
+			for child in node.ChildNodes[0].ChildNodes:
+				i.Identifiers.Add(child.FindTokenAndGetText())
+
+		// Generate the C# code for this expression
+		override func Emit():
+			source = ""
+			for c in Identifiers.Children:
+				source += c.Emit()
+			return source
+
+		// Return the fully qualified name of this expression
+		override func GetFullName():
+			name = Identifiers[0]
+			for i = 1; i < Identifiers.Count; i++:
+				name += "." + Identifiers[i]
+			return name
+
+		// Returns true if this qualified import imports the given type name.
+		func ImportsType(name):
+			n = GetFullName() + "." + name
+			return FindType(n)
+
+		// Check if the type referred to by this qualified import exists in any referenced assemblies.
+		func FindType(fullName):
+			t = System.Type.GetType(fullName)
+			if t != null:
+				return true
+			for a in PieCompiler.referencedAssemblies:
+				t = a.GetType(fullName)
+				if t != null return true
+			return false

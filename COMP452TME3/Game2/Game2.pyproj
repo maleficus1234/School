@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{6aff4bdb-d7e5-454b-a0bb-7146796649bf}</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>BuildExe.py</StartupFile>
+    <SearchPath>..\Common\</SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>Game2</Name>
+    <RootNamespace>Game2</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <InterpreterId>{2af0f10d-7135-4994-9156-5d01c9c11b7e}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="AI\DebugAction.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AI\MultiDecision.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AI\ID3.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AI\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Ant.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AStar.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AStarToFood.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AStarToHome.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="AStarToWater.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="BuildExe.py" />
+    <Compile Include="AI\Example.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Game2.py" />
+    <Compile Include="AntBootCamp.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="MoveRandomly.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="TileMap.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\Food.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\Grass.py" />
+    <Compile Include="Tiles\Poison.py" />
+    <Compile Include="Tiles\Tile.py" />
+    <Compile Include="Tiles\Water.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="AI\" />
+    <Folder Include="Content\" />
+    <Folder Include="Tiles\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\ant.png" />
+    <Content Include="Content\food.png" />
+    <Content Include="Content\grass.png" />
+    <Content Include="Content\poison.png" />
+    <Content Include="Content\water.png" />
+    <Content Include="Content\Wilhelm_Scream.ogg" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="{2af0f10d-7135-4994-9156-5d01c9c11b7e}\2.7" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
+  </PropertyGroup>
+  <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
+  <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>

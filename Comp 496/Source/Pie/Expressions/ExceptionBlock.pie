@@ -1,0 +1,127 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A try/catch/finally block expression
+	type ExceptionBlock(Expression):
+
+		// The name of the exception to catch, such as: "catch e:"
+		public Identifier = ""
+		// The body of the try block
+		public Try
+		// The body of the catch block
+		public Catch
+		// The body of the finally block
+		public Finally
+
+		// Construct a new Exception block with the given parent expression.
+		new(parent):
+			base(parent)
+			Try = Expression(null)
+			Catch = Expression(null)
+			Finally = Expression(null)
+
+		// Define the grammatical rules for this expression.
+		shared act DefineRules(grammar):
+			grammar.ExceptionBlockRule = NonTerminal("ExceptionBlock")
+			grammar.ExceptionBlockRule.Rule = grammar.ToTerm("try") + ":" + grammar.Eos + grammar.MethodBody + "catch" + grammar.Identifier + ":" + grammar.Eos + grammar.MethodBody
+			grammar.ExceptionBlockRule.Rule |= grammar.ToTerm("try") + ":" + grammar.Eos + grammar.MethodBody + "catch" + grammar.Identifier + ":" + grammar.Eos + grammar.MethodBody + "finally" + ":" + grammar.Eos + grammar.MethodBody
+
+		// Build a new exception block expression from the given parse node.
+		shared act Build(parser, parent, node):
+			e = ExceptionBlock(parent)
+			parent.Children.Add(e)
+			parser.ConsumeParseTree(e.Try, node.ChildNodes[1])
+			e.Identifier = node.ChildNodes[3].FindTokenAndGetText()
+			parser.ConsumeParseTree(e.Catch, node.ChildNodes[4])
+			if node.ChildNodes.Count > 5:
+				parser.ConsumeParseTree(e.Finally, node.ChildNodes[6])
+
+		// Refine the expression prior to emitting C#.
+		override act Refine():
+			Try.Refine()
+			Catch.Refine()
+			Finally.Refine()
+			base.Refine()
+
+		// Generate the C# code for the expression.
+		override func Emit():
+			source = ""
+			source += "try"
+			source += @"{\n"
+			source += Try.Emit()
+			source += @"}\n"
+			source += "catch(System.Exception " + Identifier + @")\n"
+			source += @"{\n"
+			source += Catch.Emit()
+			source += @"}\n"
+			if Finally.Children.Count > 0:
+				source += "finally"
+				source += @"{\n"
+				source += Finally.Emit()
+				source += @"}\n"
+			return source
+
+		// Test that an exception block works when an exception is thrown.
+		test TryCatch1:
+			source = @"
+module foo:
+	func bar():
+		try:
+			x = 1234
+			return x
+		catch e:
+		return 1337
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null) == 1234
+
+		// Test that an exception block works when a divide-by-zero exception is thrown.
+		test TryCatch2:
+			source = @"
+module foo:
+	func bar():
+		try:
+			x = 1
+			y = 0
+			return x/y
+		catch e:
+			return 1234
+		return 1337
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null) == 1234
+
+		// Test that the finally block works as expected.
+		test TryCatch3:
+			source = @"
+module foo:
+	func bar():
+		a = 3142
+		try:
+			x = 1
+			y = 0
+			return x/y
+		catch e:
+			a = 2
+		finally:
+			a = 1234
+		return a
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null) == 1234

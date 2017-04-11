@@ -1,0 +1,64 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// An import declaration expression, to import namespaces.
+	type ImportDeclaration(Expression):
+
+		// Construct a new import declaration with the given parent.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for an import declaration.
+		shared act DefineRules(grammar):
+			grammar.ImportedName = NonTerminal("QualifiedImport")
+			grammar.ImportedName.Rule = grammar.QualifiedIdentifier
+			grammar.ImportList = NonTerminal("ImportList")
+			grammar.ImportList.Rule = grammar.MakePlusRule(grammar.ImportList, grammar.ToTerm(","), grammar.ImportedName)
+			grammar.ImportDeclarationRule = NonTerminal("ImportDeclaration")
+			grammar.ImportDeclarationRule.Rule = grammar.ToTerm("import") + grammar.ImportList + grammar.Eos
+
+		// Build an import declaration from the given parse node.
+		shared act Build(parser, parent, node):
+			i = ImportDeclaration(parent)
+			parent.Children.Add(i)
+			parser.ConsumeParseTree(i, node.ChildNodes[1])
+
+		// Emit the C# code for the given import declaration.
+		override func Emit():
+			return " using " + GetFullName() + @";\n"
+
+		// Get the fully qualified name imported by this import declaration.
+		override func GetFullName():
+			return Children[0].GetFullName()
+
+		// Test that an import declaration compiles.
+		test Declaration:
+			source = @"
+import System
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+
+		// Test that multiple import declarations compile:
+		test Declaration2:
+			source = @"
+import System, System.Net
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)

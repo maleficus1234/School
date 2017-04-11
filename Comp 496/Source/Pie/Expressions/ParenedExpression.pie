@@ -1,0 +1,52 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// An expression bound by parentheses. This is only necessary so that we can emit correct C# code.
+	type ParenedExpression(Expression):
+
+		// Construct a new ParenedExpression with the given parent expression.
+		new(parent):
+			base(parent)
+
+		// Construct a new ParenedExpression from the given parse node.
+		shared act Build(parser, parent, node):
+			p = ParenedExpression(parent)
+			parent.Children.Add(p)
+			parser.ConsumeParseTree(p, node.ChildNodes[0])
+
+		// Emit the C# code for this expression.
+		override func Emit():
+			source = "("
+			source += Children[0].Emit()
+			source += ")"
+			return source
+
+		// Test that parenthese work correctly by potentially overriding operator precedence.
+		test Precedence1:
+			source = @"
+module foo:
+	func bar():
+		return (2 + 3) * 2
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 10
+
+		// Test that parenthese work correctly by potentially overriding operator precedence.
+		test Precedence2:
+			source = @"
+module foo:
+	func bar():
+		return 2 + (3 * 2)
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 8

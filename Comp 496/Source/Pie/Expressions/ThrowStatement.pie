@@ -1,0 +1,63 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A throw expression: "throw NullReferenceException()"
+	type ThrowStatement(Expression):
+
+		// Construct a new throw expression with the given parent.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for a throw expression.
+		shared act DefineRules(grammar):
+			grammar.ThrowStatementRule = NonTerminal("ThrowStatement")
+			grammar.ThrowStatementRule.Rule = grammar.ToTerm("throw") + grammar.ExpressionRule + grammar.Eos
+
+		// Construct a new return expression from the given parse node.
+		shared act Build(parser, parent, node):
+			r = ThrowStatement(parent)
+			parent.Children.Add(r)
+			if node.ChildNodes.Count > 1:
+				parser.ConsumeParseTree(r, node.ChildNodes[1])
+
+		// Generate the C# code for this expression
+		override func Emit():
+			source = " throw "
+			source += base.Emit()
+			source += @";\n"
+			return source
+
+		// Test that a return expression works correctly
+		test Throw:
+			source = @"
+import System
+module foo:
+	func bar():
+		try:
+			throw ArgumentException()
+		catch e:
+			return 1234
+		return 1
+
+			"
+
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x is int
+			assert x == 1234
+

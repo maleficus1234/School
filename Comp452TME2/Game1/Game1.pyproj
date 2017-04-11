@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>10dfd224-8ae1-4f71-ae5c-8045e67447fa</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>BuildExe.py</StartupFile>
+    <SearchPath>..\Common\</SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>Comp452TME2Game!</Name>
+    <RootNamespace>Comp452TME2Game!</RootNamespace>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <InterpreterId>{2af0f10d-7135-4994-9156-5d01c9c11b7e}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="BuildExe.py" />
+    <Compile Include="Game1.py" />
+    <Compile Include="TileMap.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\Block.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\Grass.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\Open.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\Swamp.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tiles\__init__.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.pyproj">
+      <Name>Common</Name>
+      <Project>{a4cf3572-8f47-4d2a-9c01-41c8d8d6bb70}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="{2af0f10d-7135-4994-9156-5d01c9c11b7e}\2.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Content\" />
+    <Folder Include="Tiles\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\block.png" />
+    <Content Include="Content\grass.png" />
+    <Content Include="Content\open.png" />
+    <Content Include="Content\swamp.png" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
+  </PropertyGroup>
+  <Import Condition="Exists($(PtvsTargetsFile))" Project="$(PtvsTargetsFile)" />
+  <Import Condition="!Exists($(PtvsTargetsFile))" Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>

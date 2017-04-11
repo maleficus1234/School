@@ -1,0 +1,62 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// An expression representing reserved words, other than keywords. Typically these are aliases. For example, int is an alias for System.Int32
+	type ReservedExpression(Expression):
+
+		// Construct a new reserved expression with the given parent.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for this expression.
+		shared act DefineRules(grammar):
+			grammar.ReservedExpressionRule = NonTerminal("ReservedExpression")
+			grammar.ReservedExpressionRule.Rule = grammar.ToTerm("true") | "false" | "byte" | "sbyte" | "short" | "ushort" | "int" | "uint" | "long" | "ulong" | "float" | "double" | "decimal" | "string" | "this" | "base" | "null" | "continue" | "break"
+
+		// Construct a new reserved expression from the given parse node.
+		shared act Build(parser, parent, node):
+			r = ReservedExpression(parent)
+			parent.Children.Add(r)
+			r.Name = node.ChildNodes[0].FindTokenAndGetText()
+
+		// Generate the C# code for this expression.
+		override func Emit():
+			source = ""
+			if Name == "this":
+				source += "(" + Name + " as dynamic)"
+			else:
+				source += " " + Name + " "
+			return source
+
+		// Test that continue and break reserved words work correctly.
+		test ContinueBreak:
+			source = @"
+type foo:
+	shared func bar():
+		x = 0
+		while true:
+			if x < 10:
+				x += 1
+				continue
+			else:
+				break			
+		return x
+			"
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 10

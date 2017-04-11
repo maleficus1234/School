@@ -1,0 +1,130 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+	
+	// A field variable declaration
+	type FieldDeclaration(Expression):
+
+		// The set of access modifiers for the field
+		public Modifiers = list()
+
+		// Construct a new field declaration expression using the given parent expression
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for this expression
+		shared act DefineRules(grammar):
+			grammar.FieldDeclarationRule = NonTerminal("FieldDeclaration")
+			grammar.FieldDeclarationRule.Rule = grammar.ModifierList + grammar.Identifier + grammar.Eos
+			grammar.FieldDeclarationRule.Rule |= grammar.ModifierList + grammar.Identifier + "=" + grammar.ExpressionRule + grammar.Eos
+
+		// Construct a new field declaration expression from the given parse node.
+		shared act Build(parser, parent, node):
+			f = FieldDeclaration(parent)
+			parent.Children.Add(f)
+			for m in node.ChildNodes[0].ChildNodes:
+				f.Modifiers.Add(m.FindTokenAndGetText())
+			f.Name = node.ChildNodes[1].FindTokenAndGetText()
+			if node.ChildNodes.Count > 2:
+				parser.ConsumeParseTree(f, node.ChildNodes[3])
+
+		// Refine the expression prior to emitting as C#: for example, change modifier keywords to their C# equivalent.
+		override act Refine():
+			for i = 0; i < Modifiers.Count; i++:
+				switch Modifiers[i]:
+					case "final":
+						Modifiers[i] = "sealed"
+					case "shared":
+						Modifiers[i] = "static"
+			// Automatically make the field static if it's in a module.
+			if Parent is TypeDeclaration:
+				if Parent.ClassType == "module" && !Modifiers.Contains("static"):
+					Modifiers.Add("static")
+			if !Modifiers.Contains("internal") && !Modifiers.Contains("public") && !Modifiers.Contains("private") && !Modifiers.Contains("protected"):
+				Modifiers.Add("private")
+			base.Refine()
+
+		// Generate the C# code for this expression
+		override func Emit():
+			source = ""
+			if !this.IsEnum:
+				for m in Modifiers:
+					source += m + " "
+			if this.IsEnum:
+				source += Name
+			else:
+				source += " dynamic " + Name
+			if Children.Count > 0:
+				source += " = "
+				source += Children[0].Emit()
+			if this.IsEnum:
+				source += @",\n"
+			else:
+				source += @";\n"
+			return source
+
+
+		/*
+			Tests: test each type of field declaration
+		*/
+
+		test Private:
+			source = @"
+internal type foo:
+	PrivateField
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			assert t.GetField("PrivateField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).IsPrivate
+
+		test Public:
+			source = @"
+internal type foo:
+	public PublicField
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			f = t.GetField("PublicField", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+			assert f != null
+			assert f.IsPublic
+
+		test Protected:
+			source = @"
+internal type foo:
+	protected ProtectedField
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			f = t.GetField("ProtectedField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+			assert f != null
+			assert f.IsFamily
+
+		test Internal:
+			source = @"
+internal type foo:
+	internal InternalField
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			f = t.GetField("InternalField", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+			assert f != null
+			assert f.IsAssembly
+
+		test Assigned:
+			source = @"
+module foo:
+	moo = 1234
+	func bar():
+		return moo
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 1234

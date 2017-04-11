@@ -1,0 +1,56 @@
+<!-- Use this file to deploy some handlers/chains and services      -->
+<!-- Two ways to do this:                                           -->
+<!--   java org.apache.axis.client.AdminClient deploy.wsdd          -->
+<!--      after the axis server is running                          -->
+<!-- or                                                             -->
+<!--   java org.apache.axis.utils.Admin client|server deploy.wsdd   -->
+<!--      from the same directory that the Axis engine runs         -->
+
+<deployment
+    xmlns="http://xml.apache.org/axis/wsdd/"
+    xmlns:java="http://xml.apache.org/axis/wsdd/providers/java">
+
+  <!-- Services from ServiceService WSDL service -->
+
+  <service name="Service" provider="java:RPC" style="wrapped" use="literal">
+      <parameter name="wsdlTargetNamespace" value="http://P2PWebService"/>
+      <parameter name="wsdlServiceElement" value="ServiceService"/>
+      <parameter name="schemaQualified" value="http://P2PWebService"/>
+      <parameter name="wsdlServicePort" value="Service"/>
+      <parameter name="className" value="P2PWebService.ServiceSoapBindingImpl"/>
+      <parameter name="wsdlPortType" value="Service"/>
+      <parameter name="typeMappingVersion" value="1.2"/>
+      <operation name="isShared" qname="operNS:isShared" xmlns:operNS="http://P2PWebService" returnQName="retNS:isSharedReturn" xmlns:retNS="http://P2PWebService" returnType="rtns:boolean" xmlns:rtns="http://www.w3.org/2001/XMLSchema" soapAction="" >
+        <parameter qname="pns:username" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+        <parameter qname="pns:filename" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="authorize" qname="operNS:authorize" xmlns:operNS="http://P2PWebService" returnQName="retNS:authorizeReturn" xmlns:retNS="http://P2PWebService" returnType="rtns:boolean" xmlns:rtns="http://www.w3.org/2001/XMLSchema" soapAction="" >
+        <parameter qname="pns:username" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+        <parameter qname="pns:password" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="updateAddress" qname="operNS:updateAddress" xmlns:operNS="http://P2PWebService" soapAction="" >
+        <parameter qname="pns:username" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+        <parameter qname="pns:address" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+        <parameter qname="pns:port" xmlns:pns="http://P2PWebService" type="tns:int" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="getSharedFiles" qname="operNS:getSharedFiles" xmlns:operNS="http://P2PWebService" returnQName="retNS:getSharedFilesReturn" xmlns:retNS="http://P2PWebService" returnType="rtns:string" xmlns:rtns="http://www.w3.org/2001/XMLSchema" soapAction="" >
+        <parameter qname="pns:username" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="stopShare" qname="operNS:stopShare" xmlns:operNS="http://P2PWebService" soapAction="" >
+        <parameter qname="pns:username" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+        <parameter qname="pns:filename" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="sayHello" qname="operNS:sayHello" xmlns:operNS="http://P2PWebService" returnQName="retNS:sayHelloReturn" xmlns:retNS="http://P2PWebService" returnType="rtns:string" xmlns:rtns="http://www.w3.org/2001/XMLSchema" soapAction="" >
+      </operation>
+      <operation name="share" qname="operNS:share" xmlns:operNS="http://P2PWebService" soapAction="" >
+        <parameter qname="pns:username" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+        <parameter qname="pns:filename" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <operation name="findFile" qname="operNS:findFile" xmlns:operNS="http://P2PWebService" returnQName="retNS:findFileReturn" xmlns:retNS="http://P2PWebService" returnType="rtns:string" xmlns:rtns="http://www.w3.org/2001/XMLSchema" soapAction="" >
+        <parameter qname="pns:username" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+        <parameter qname="pns:filename" xmlns:pns="http://P2PWebService" type="tns:string" xmlns:tns="http://www.w3.org/2001/XMLSchema"/>
+      </operation>
+      <parameter name="allowedMethods" value="sayHello updateAddress stopShare findFile share authorize isShared getSharedFiles"/>
+
+  </service>
+</deployment>

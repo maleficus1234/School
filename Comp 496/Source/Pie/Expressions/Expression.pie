@@ -1,0 +1,95 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+
+namespace Pie.Expressions:
+
+	// The base class for all Pie expressions. Can be instantiated as an "empty" placeholder
+	// expression, or subclassed into specific expression types.
+	type Expression:
+
+		// The name of the expression, if appropriate. For example, a variable, type, or method name.
+		public Name = ""
+		// The list of child expressions of this expression.
+		public Children = list()
+		// True if this expression is a base call. This needs to be tracked, as the dynamic runtime is
+		// easily confused, and base calls must be made explicity static: "base.foo" becomes "(base as object).foo"
+		public IsBaseCall
+		// This expression's variable and type scope
+		public Scope = Scope()
+		// The parent expression of this expression, if any.
+		public Parent
+		// The parent expression is inside an enum: field declarations need to know this so that they do not emit code that is invalid in enums.
+		public IsEnum = false
+		
+		// Construct a new Expression with the given parent Expression.
+		new(parent):
+			this.Parent = parent
+			this.IsBaseCall = false
+
+		// Test that the constructor works as intended.
+		test New:
+			x = Expression(null)
+			y = Expression(x)
+			assert x.Parent == null
+			assert y.Parent == x
+
+		// Get the fully qualified name of the expression (the parent's fully qualified name plus that of this expression.
+		virtual func GetFullName():
+			if this.Parent == null return this.Name
+			else:
+				if this.Parent.Name == null return this.Name
+				else return this.Parent.Name + "." + Name
+
+		// Test that GetFullName returns the correct fully qualified name.
+		test GetFullName:
+			x = Expression(null)
+			x.Name = "foo"
+			assert x.GetFullName() == "foo"
+			y = Expression(x)
+			y.Name = "bar"
+			assert y.GetFullName() == "foo.bar"
+
+		// Emits the C# code for this expression.
+		// Stub function that only calls Emit on child expressions. Must be overridden by subclasses.
+		virtual func Emit():
+			source = ""
+			for child in Children source += child.Emit()
+			return source
+
+		// Perform any refinement necessary before outputing the expression as C# code.
+		// Stub function that only calls Refine on child expressions. Must be overridden by subclasses.
+		virtual act Refine():
+			// Distribute any namespace imports to all children
+			for child in Children:
+				c = child as ImportDeclaration
+				if c != null:
+					for i in c.Children:
+						PropagateImport(i)
+			for child in Children child.Refine()
+
+		// Propagate an import declaration to this expression and it's children.
+		// This allows the expression to be aware of types imported into this source file.
+		virtual act PropagateImport(i):
+			Scope.ImportDeclarations.Add(i)
+			for child in Children child.PropagateImport(i)
+
+		// Propagate that this is a base invocation: the dynamic runtime is easily confused by base
+		// invocations, and they must be made explicitely static. This means base.foo becomes (base as object).foo.
+		act PropagateIsBaseCall():
+			IsBaseCall = true
+			for c in Children:
+				c.PropagateIsBaseCall()
+
+		// Propagate to all child expressions that this is inside an enum: 
+		// field declarations need to know this so that they do not emit code that is invalid in enums.
+		act PropagateIsEnum():
+			IsEnum = true
+			for c in Children:
+				c.PropagateIsEnum()

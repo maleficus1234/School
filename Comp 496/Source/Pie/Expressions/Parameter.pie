@@ -1,0 +1,47 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A method parameter expression: parameters in a method signature
+	type Parameter(Expression):
+
+		// ref or out
+		public Direction = ""
+		// Name of the parameter
+		public Identifier = ""
+		public AsCast = "dynamic"
+
+		// Construct a new parameter expression
+		new(parent):
+			base(parent)
+
+		// Construct a new parameter expression from the given parse node.
+		shared act Build(parser, parent, node):
+			p = Parameter(parent)
+			parent.Children.Add(p)
+			if node.ChildNodes[0].ChildNodes.Count > 0:
+				p.Direction = node.ChildNodes[0].ChildNodes[0].Term.ToString()
+			p.Identifier = node.ChildNodes[1].FindTokenAndGetText()
+			if p.Identifier == "args":
+				p.AsCast = " System.String [] "
+			if node.ChildNodes[2].ChildNodes.Count > 0:
+				p.AsCast = node.ChildNodes[2].ChildNodes[1].FindTokenAndGetText()
+
+		// Generate the C# code for this expression
+		override func Emit():
+			source = ""
+			source += Direction + " " + AsCast + " "
+			source += Identifier
+			return source
+
+/* Parameter unit testing is performed in MethodDeclaration.pie, since parameters are integral
+to method signatures */

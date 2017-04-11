@@ -1,0 +1,59 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import System.Linq
+
+namespace Pie.Expressions:
+
+	// A stack of scopes used during the refinement pass.
+	// As a fork a new fork in the code is reached, it's scope is pushed onto the stack
+	// so that the refinement functions are aware of new variables added to that scope.
+	// As it's a stack, refinement functions are also aware of preceding and overlapping scopes.
+	module ScopeStack:
+
+		// The set of scopes current in the stack
+		// Created as a list, not a scope, as we often wish to pop multiple scopes at once.
+		public shared Scopes = list()
+		// All type declarations found in the pie source code being compiled.
+		public shared TypeDeclarations = list()
+
+		// Push a new scope onto the stack
+		shared act Push(scope):
+			Scopes.Add(scope)
+
+		// Pop a scope from the stack, along with all scopes that were pushed after it.
+		// ie, if you exit a method while in an if block, both the method scope and if block
+		// scopes must be removed.
+		shared act Pop(scope):
+			i = Scopes.IndexOf(scope)
+			Scopes.RemoveRange(i, Scopes.Count - i)
+
+		// Returns true if a variable with the given name is currently found in the stack of scopes.
+		shared func VariableInScope(name):
+			for scope in Scopes:
+				for v in scope.Variables:
+					if v.FullName == name return true
+			return false
+
+		// Retuns true if a type with the given name is currently found in the stack of scopes.
+		shared func TypeInScope(name):
+			for c in TypeDeclarations:
+				if name == c.Name:
+					return true
+			for scope in Scopes:
+				for i in scope.ImportDeclarations:
+					if i.ImportsType(name):
+						return true
+			return false
+
+
+		/*
+
+		Scope testing is done by the individual scope-generating expressions.
+
+		*/

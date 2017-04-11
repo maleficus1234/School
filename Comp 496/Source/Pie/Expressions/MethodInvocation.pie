@@ -1,0 +1,119 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A method invocation expression: foo(x)
+	type MethodInvocation(Expression):
+
+		// True if the method name is a type, in which case it's an instantiation
+		public IsType
+		// The set of expressions reprsenting arguments in the invocation
+		public Arguments
+
+		// Constructs a new method invocation expression with the given parent expression
+		new(parent):
+			base(parent)
+			Arguments = Expression(this)
+			IsType = false
+		
+		// Define the grammatical rules of this expression
+		shared act DefineRules(grammar):
+			grammar.MethodInvocationRule = NonTerminal("MethodInvocation")
+			grammar.MethodInvocationRule.Rule = grammar.Identifier + "(" + grammar.ExpressionList + ")"
+			grammar.MethodInvocationRule.Rule |= grammar.ToTerm("base") + "(" + grammar.ExpressionList + ")"
+
+		// Construct a new method invocation expression from the given parse node.
+		shared act Build(parser, parent, node):
+			m = MethodInvocation(parent)
+			parent.Children.Add(m)
+			m.Name = node.ChildNodes[0].FindTokenAndGetText()
+			// Construct all the argument expressions
+			for n in node.ChildNodes[1].ChildNodes:
+				parser.ConsumeParseTree(m.Arguments, n)
+
+		// Refine the expression prior to generating C#
+		override act Refine():
+			n = this.Name
+			// See if the type is in scope, in which case this is an instantiation
+			if ScopeStack.TypeInScope(n):
+				IsType = true
+			// Convert list/map/queue/stack aliases
+			switch Name:
+				case "list":
+					this.Name = "System.Collections.Generic.List<dynamic>"
+					IsType = true
+				case "map":
+					this.Name = "System.Collections.Generic.Dictionary<dynamic, dynamic>"
+					IsType = true
+				case "queue":
+					this.Name = "System.Collections.Generic.Queue<dynamic>"
+					IsType = true
+				case "stack":
+					this.Name = "System.Collections.Generic.Stack<dynamic>"
+					IsType = true
+			for e in Arguments.Children:
+				e.Refine()
+			base.Refine()
+
+		// Generate the C# code for this expression
+		override func Emit():
+			source = ""
+			if IsType:
+				if !(Parent is AccessedExpression):
+					source += " new "
+			source += Name
+			source += "("			
+			if Arguments.Children.Count > 0:				
+				source += Arguments.Children[0].Emit()
+				if Name == "base" || this.IsBaseCall:
+					source += " as object "
+				for i = 1; i < Arguments.Children.Count; i++:
+					source += ", "
+					source += Arguments.Children[i].Emit()
+					if Name == "base" || IsBaseCall:
+						source += " as object "
+			source += ")"
+			return source
+
+		// Propagate imports to the invocation arguments
+		override act PropagateImport(i):
+			for e in Arguments.Children:
+				e.PropagateImport(i)
+			base.PropagateImport(i)
+
+		test Method:
+			source = @"
+module foo:
+	func bar():
+		return whee()
+	func whee():
+		return 1234
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null) == 1234
+
+		// Test that a method invocation is correctly interpreted as an instantiation
+		test TypeInstant:
+			source = @"
+namespace moo:
+	module foo:
+		func bar():
+			return whee2()
+
+type whee2:
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("moo.foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null).GetType().FullName == "whee2"

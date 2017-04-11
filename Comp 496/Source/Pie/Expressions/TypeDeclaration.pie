@@ -1,0 +1,246 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A type declaration: type, module, or interface.
+	type TypeDeclaration(Expression):
+
+		// The modifiers for the declaration: public, private, internal
+		public Modifiers = list()
+		// The inherited type names.
+		public TypeNames = Expression(null)
+		// type, module, or interface
+		public ClassType
+		// If this type is to be dynamic, extra supporting code must be added.
+		public MakeDynamic = false
+
+		// Construct a new type declaration expression with the given parent expression.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for a type declaration.
+		shared act DefineRules(grammar):
+			grammar.TypeClass = NonTerminal("TypeClass")
+			grammar.TypeClass.Rule = grammar.ToTerm("type") | grammar.ToTerm("module") | grammar.ToTerm("enum")
+			grammar.MarkTransient(grammar.TypeClass)
+
+			grammar.TypeDeclarationRule = NonTerminal("TypeDeclaration")
+
+			grammar.TypeMember = NonTerminal("TypeMember")
+			grammar.TypeMember.Rule = grammar.TypeDeclarationRule
+			grammar.TypeMember.Rule |= grammar.MethodDeclarationRule
+			grammar.TypeMember.Rule |= grammar.FieldDeclarationRule
+			grammar.TypeMember.Rule |= grammar.ConstructorDeclaration
+			grammar.TypeMember.Rule |= grammar.TestDeclarationRule
+
+			grammar.TypeMemberList = NonTerminal("TypeMemberList")
+			grammar.TypeMemberList.Rule = grammar.MakeStarRule(grammar.TypeMemberList, grammar.TypeMember)
+
+			grammar.TypeBody = NonTerminal("TypeBody")
+			grammar.TypeBody.Rule = grammar.Indent + grammar.TypeMemberList + grammar.Dedent
+			grammar.TypeBody.Rule |= grammar.Empty
+
+			grammar.TypeInheritance = NonTerminal("TypeInheritance")
+			grammar.TypeInheritance.Rule = grammar.ToTerm("(") + grammar.IdentifierList + grammar.ToTerm(")")
+			grammar.TypeInheritance.Rule |= grammar.Empty
+
+			grammar.TypeDeclarationRule.Rule = grammar.ModifierList + grammar.TypeClass + grammar.Identifier + grammar.TypeInheritance + ":" + grammar.Eos + grammar.TypeBody
+
+		// Construct a new type declaration expression from the given parse node.
+		shared act Build(parser, parent, node):
+			t = TypeDeclaration(parent)
+			parent.Children.Add(t)
+			// Add this type to the scope stack.
+			ScopeStack.TypeDeclarations.Add(t)
+			// Get the declaration modifiers for this type.
+			for m in node.ChildNodes[0].ChildNodes:
+				t.Modifiers.Add(m.FindTokenAndGetText())
+			t.ClassType = node.ChildNodes[1].Term.ToString()
+			t.Name = node.ChildNodes[2].FindTokenAndGetText()
+			// Get the supertypes.
+			if node.ChildNodes[3].ChildNodes.Count > 0:
+				parser.ConsumeParseTree(t.TypeNames, node.ChildNodes[3].ChildNodes[0])
+			// Build the contents of the type.
+			parser.ConsumeParseTree(t, node.ChildNodes[4])
+			
+		// Refine the expression prior to emitting C#.
+		override act Refine():
+			// Push the type's scope onto the stack.
+			ScopeStack.Push(this.Scope)
+			
+			// Add any fields to the scope.
+			for c in Children:
+				if c is FieldDeclaration:
+					v = Variable()
+					v.FullName = c.Name
+					Scope.Variables.Add(v)
+			// Translate modifiers to C# equivalent.
+			for i = 0; i < Modifiers.Count; i++:
+				switch Modifiers[i]:
+					case "final":
+						Modifiers[i] = "sealed"
+			// If not access modifier is present, make the type public.
+			if !Modifiers.Contains("internal") && !Modifiers.Contains("public") && !Modifiers.Contains("private"):
+				Modifiers.Add("public")
+			// If there's no supertype, we can make the type dynamic.
+			if TypeNames.Children.Count == 0 && ClassType == "type":
+				MakeDynamic = true
+			if ClassType == "type" ClassType = "class"
+			if ClassType == "enum" this.PropagateIsEnum()
+			base.Refine()
+			ScopeStack.Pop(this.Scope)
+
+		// Generate the C# code for this expression.
+		override func Emit():
+			source = ""
+			for m in Modifiers:
+				source += m + " "
+			if ClassType == "module":
+				source += " static class "
+			else:
+				source += " " + ClassType + " "
+			source += Name + @"\n"
+			if TypeNames.Children.Count > 0:
+				source += " : "
+				source += TypeNames.Children[0].Emit()
+				for i = 1; i < TypeNames.Children.Count; i++:
+					source += TypeNames.Children[i].Emit()
+				source += @"\n"
+			if MakeDynamic:
+				source += @" : System.Dynamic.DynamicObject\n"
+			source += @"{\n"
+			source += base.Emit()
+			if MakeDynamic:
+				source += @"
+// The inner dictionary.
+        System.Collections.Generic.Dictionary<string, object> pie_member_dictionary
+            = new System.Collections.Generic.Dictionary<string, object>();
+
+        // If you try to get a value of a property 
+        // not defined in the class, this method is called.
+        public override bool TryGetMember(
+            System.Dynamic.GetMemberBinder binder, out object result)
+        {
+            // Converting the property name to lowercase
+            // so that property names become case-insensitive.
+            //string name = binder.Name.ToLower();
+
+            // If the property name is found in a dictionary,
+            // set the result parameter to the property value and return true.
+            // Otherwise, return false.
+            return pie_member_dictionary.TryGetValue(binder.Name, out result);
+        }
+
+        // If you try to set a value of a property that is
+        // not defined in the class, this method is called.
+        public override bool TrySetMember(
+            System.Dynamic.SetMemberBinder binder, object value)
+        {
+            // Converting the property name to lowercase
+            // so that property names become case-insensitive.
+            pie_member_dictionary[binder.Name] = value;
+
+            // You can always add a value to a dictionary,
+            // so this method always returns true.
+            return true;
+        }
+"
+			source += @"}\n"
+			return source
+
+		// Return the fully qualified name of the type.
+		override func GetFullName():
+			if Parent == null:
+				return Name
+			else:
+				if Parent is TypeDeclaration:
+					return Parent.GetFullName() + "." + Name
+				else:
+					return Name
+
+
+
+		// Test that a publicly declared type compiles correctly
+		test PublicType:
+			source = @"
+public type foo:
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			assert t != null
+			assert t.IsClass
+			assert t.IsPublic
+
+		// Test that an internally declared type compiles correctly
+		test InternalType:
+			source = @"
+internal type foo:
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			assert t != null
+			assert t.IsClass
+			assert !t.IsVisible
+
+		// Test that declaration with inheritance compiles correctly
+		test Inheritance:
+			source = @"
+type foo:
+type bar(foo):
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			assert t != null
+			assert t.IsClass
+			i = result.CompiledAssembly.GetType("bar")
+			assert i != null
+			assert i.IsClass
+			assert i.BaseType.ToString() == t.ToString()
+
+		// Test that a declared type is correctly made dynamic.
+		test IsDynamic:
+			source = "type foo:"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			assert t != null
+			assert t.IsClass
+			o = System.Activator.CreateInstance(t)
+			assert o is System.Dynamic.DynamicObject
+			assert o is System.Dynamic.IDynamicMetaObjectProvider
+			assert o is dynamic
+
+		// Test that a module compiles correctly.
+		test Module:
+			source = "module foo:"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			assert t != null
+			assert t.IsClass
+
+		// Test that an enum works correctly
+		test Enum:
+			source = @"
+
+enum E(int):
+	x
+	y
+	z
+
+module foo:
+	func bar():
+		return E.x
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null) == 0
+

@@ -1,0 +1,239 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+
+namespace Pie.Expressions:
+
+	type PieGrammar(Grammar):
+
+		// These fields must be explicitely declared: since PieGrammar derives from Grammar, a static
+		// type, it is also static typed and won't allow members to be added at runtime.
+
+		CompileUnit
+		public ExpressionRule
+		public Identifier
+		public QualifiedIdentifier
+		public IdentifierList
+		public Modifier
+		public ModifierList
+		public ImportDeclarationRule
+		public ImportedName
+		public ImportList
+		public NamespaceDeclarationRule
+		public NamespaceMember
+		public NamespaceMemberList
+		public NamespaceBody
+		public TypeClass
+		public TypeDeclarationRule
+		public TypeMember
+		public TypeMemberList
+		public TypeBody
+		public TypeInheritance
+		public MethodDeclarationRule
+		public MethodType
+		public MethodMemberList
+		public MethodBody
+		public ConstructorDeclaration
+		public ParameterList
+		public Parameter
+		public AsCast
+		public ParameterDirection
+		public Statement
+		public ReturnStatementRule
+		public StringLiteral
+		public NumberLiteral
+		public LiteralRule
+		public AssignmentRule
+		public AssignmentOperator
+		public BinaryOperationRule
+		public BinaryOperators
+		public ReservedExpressionRule
+		public IfConditionalRule
+		public ForLoopRule
+		public ForEachLoopRule
+		public MethodInvocationRule
+		public ExpressionList
+		public AccessedExpression
+		public WhileLoopRule
+		public Indexer
+		public IndexedIdentifierRule
+		public FieldDeclarationRule
+		public SwitchBlockRule
+		public CaseBlock
+		public CaseBlockList
+		public SwitchBody
+		public PreUnaryOperator
+		public PostUnaryOperator
+		public PostUnaryOperation
+		public PreUnaryOperation
+		public UnaryOperationRule
+		public TestDeclarationRule
+		public AssertStatementRule
+		public ParenedExpressionRule
+		public ExceptionBlockRule
+		public ThrowStatementRule
+
+		// Define the grammar for Pie!
+		new():
+			// Automatically generate a newline before the end of file, and allow 128 bit numbers.
+			this.LanguageFlags = LanguageFlags.NewLineBeforeEOF | LanguageFlags.SupportsBigInt
+
+			RegisterBracePair("(", ")")
+
+			MarkPunctuation(ToTerm("("), ToTerm(")"), ToTerm(","), ToTerm(":"))
+
+			ExpressionRule = NonTerminal("Expression")
+
+			ExpressionList = NonTerminal("ExpressionList")
+			ExpressionList.Rule = MakeStarRule(ExpressionList, ToTerm(","), ExpressionRule)
+
+			Identifier = IdentifierTerminal("Identifier")
+			ExpressionRule.Rule = Identifier
+
+			AccessedExpression = NonTerminal("AccessedExpression")
+			AccessedExpression.Rule = ExpressionRule + "." + ExpressionRule
+			ExpressionRule.Rule |= AccessedExpression
+
+			Literal.DefineRules(this)
+			ExpressionRule.Rule |= LiteralRule
+
+			ReservedExpression.DefineRules(this)
+			ExpressionRule.Rule |= ReservedExpressionRule
+
+			ParenedExpressionRule = NonTerminal("ParenedExpression")
+			ParenedExpressionRule.Rule = ToTerm("(") + ExpressionRule + ")"
+			ExpressionRule.Rule |= ParenedExpressionRule
+
+			Assignment.DefineRules(this)
+			ExpressionRule.Rule |= AssignmentRule
+
+			BinaryOperation.DefineRules(this)
+			ExpressionRule.Rule |= BinaryOperationRule
+
+			UnaryOperation.DefineRules(this)
+			ExpressionRule.Rule |= UnaryOperationRule
+
+			MethodInvocation.DefineRules(this)
+			ExpressionRule.Rule |= MethodInvocationRule
+
+			QualifiedIdentifier = NonTerminal("QualifiedIdentifier")
+			QualifiedIdentifier.Rule = MakePlusRule(QualifiedIdentifier, ToTerm("."), Identifier)
+
+			IdentifierList = NonTerminal("IdentifierList")
+			IdentifierList.Rule = MakeStarRule(IdentifierList, ToTerm(","), QualifiedIdentifier)
+
+			IndexedIdentifier.DefineRules(this)
+			ExpressionRule.Rule |= IndexedIdentifierRule
+
+			Modifier = NonTerminal("modifier")
+			Modifier.Rule = ToTerm("internal") | "private" | "public" | "shared" | "final" | "virtual" | "override" | "protected" | "debug"
+			ModifierList = NonTerminal("modifier_list")
+			ModifierList.Rule = MakeStarRule(ModifierList, Modifier)
+
+			MethodType = NonTerminal("MethodType")
+			MethodType.Rule = ToTerm("func") | ToTerm("act")
+			MarkTransient(MethodType)
+
+			AsCast = NonTerminal("AsCast")
+			AsCast.Rule = ToTerm("as") + Identifier
+			AsCast.Rule |= Empty
+
+			ParameterDirection = NonTerminal("ParameterDirection")
+			ParameterDirection.Rule = ToTerm("ref")
+			ParameterDirection.Rule |= ToTerm("out")
+			ParameterDirection.Rule |= Empty
+
+			Parameter = NonTerminal("Parameter")
+			Parameter.Rule = ParameterDirection + Identifier + AsCast
+            
+			ParameterList = NonTerminal("ParameterList")
+			ParameterList.Rule = MakeStarRule(ParameterList, ToTerm(","), Parameter)
+
+			ReturnStatement.DefineRules(this)
+
+			Statement = NonTerminal("Statement")
+			Statement.Rule = ReturnStatementRule
+			Statement.Rule |= ExpressionRule + Eos
+			Statement.Rule |= ExpressionRule + ";"
+			Statement.Rule |= ExpressionRule
+
+			MethodMemberList = NonTerminal("MethodMemberList")
+			MethodMemberList.Rule = MakeStarRule(MethodMemberList, Statement)
+
+			MethodBody = NonTerminal("MethodBody")
+			MethodBody.Rule = Indent + MethodMemberList + Dedent
+			MethodBody.Rule |= Empty
+
+			FieldDeclaration.DefineRules(this)
+			ImportDeclaration.DefineRules(this)
+			MethodDeclaration.DefineRules(this)
+			TestDeclaration.DefineRules(this)
+			
+			TypeDeclaration.DefineRules(this)
+			NamespaceDeclaration.DefineRules(this)
+			
+			ThrowStatement.DefineRules(this)
+			Statement.Rule |= ThrowStatementRule
+
+			ExceptionBlock.DefineRules(this)
+			Statement.Rule |= ExceptionBlockRule
+
+			IfConditional.DefineRules(this)
+			Statement.Rule |= IfConditionalRule
+
+			ForLoop.DefineRules(this)
+			Statement.Rule |= ForLoopRule
+
+			ForEachLoop.DefineRules(this)
+			Statement.Rule |= ForEachLoopRule
+
+			WhileLoop.DefineRules(this)
+			Statement.Rule |= WhileLoopRule
+
+			SwitchBlock.DefineRules(this)
+			Statement.Rule |= SwitchBlockRule
+
+			AssertStatement.DefineRules(this)
+			Statement.Rule |= AssertStatementRule
+
+			CompileUnit = NonTerminal("CompileUnit")
+			CompileUnit.Rule = NamespaceMemberList
+			CompileUnit.Rule |= Eos
+			this.Root = CompileUnit
+
+			// Comments defining comment tokens.
+			singleLineComment = CommentTerminal("SingleLineComment", "//", @"\r", @"\n", @"\u2085", @"\u2028", @"\u2029")
+			delimitedComment = CommentTerminal("DelimitedComment", "/*", "*/")
+
+			NonGrammarTerminals.Add(singleLineComment)
+			NonGrammarTerminals.Add(delimitedComment)
+
+			RegisterOperators(0, ",")
+			RegisterOperators(0, Associativity.Right, "as")
+			RegisterOperators(30, Associativity.Left, ".")
+			RegisterOperators(1, Associativity.Left, "||")
+			RegisterOperators(2, Associativity.Left, "&&")
+			RegisterOperators(3, Associativity.Left, "|")
+			RegisterOperators(4, Associativity.Left, "^")
+			RegisterOperators(5, Associativity.Left, "&")
+			RegisterOperators(6, Associativity.Left, "==", "!=")
+			RegisterOperators(7, Associativity.Left, "<", ">", "<=", ">=", "is", "as")
+			RegisterOperators(8, Associativity.Left, "<<", ">>")
+			RegisterOperators(9, Associativity.Left, "+", "-")
+			RegisterOperators(10, Associativity.Left, "*", "/", "%")
+			RegisterOperators(11, Associativity.Right, "++", "--", "~", "!")
+			RegisterOperators(12, Associativity.Left, "=", "+=", "-=", "*=", "/=", "%=", "&=", "|=","^=", "<<=", ">>=")
+
+			this.AddToNoReportGroup(Eos)
+
+		// Need to customize the tool's token filter to handle white-spaced scoping.
+		override act CreateTokenFilters(language as LanguageData, filters as TokenFilterList):
+			outlineFilter = CodeOutlineFilter(language.GrammarData, OutlineOptions.ProduceIndents | OutlineOptions.CheckOperator | OutlineOptions.CheckBraces, null)
+			filters.Add(outlineFilter)
+			

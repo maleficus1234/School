@@ -1,0 +1,99 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import System
+import System.CodeDom.Compiler
+import Microsoft.CSharp
+import System.Reflection
+
+namespace Pie:
+
+	// The compiler class for the Pie language.
+	type PieCompiler:
+
+		// The parser used to parse the source files.
+		parser = IronyParser()
+		// The list of referenced assemblies.
+		public shared referencedAssemblies = list()
+		// If true, sensors will be inserted into runtime code for code coverage analysis.
+		public shared trackSensors = false
+
+		// Compile the given source files and return the compiler result: the same result as
+		// produced by .NET CodeProviders. This overload causes C# source to be displayed while compiling.
+		func CompileAssemblyFromSource(options, sources):
+			return CompileAssemblyFromSource(options, sources, true)
+
+		// As previous, except the caller can specify whether the C# source should be shown.
+		func CompileAssemblyFromSource(options, sources, showSource):
+			referencedAssemblies.Clear()
+			// Load all referenced assemblies into memory.
+			referencedAssemblies.Add(Assembly.Load("System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"))
+			referencedAssemblies.Add(Assembly.Load("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"))
+			referencedAssemblies.Add(Assembly.Load("Microsoft.CSharp, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"))
+			referencedAssemblies.Add(Assembly.Load("Irony, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47"))
+			csSources = list()
+			trees = list()
+			// Parse the source files into expression trees.
+			for source in sources:
+				tree = parser.Parse(source)
+				if tree == null:
+					return null
+				trees.Add(tree)
+			// Generate C# code from the expression trees.
+			for tree in trees:
+				tree.Refine()
+				cs = @"#pragma warning disable 0105\n"
+				
+				cs += tree.Emit()
+
+				// Output the C# source to console if requested.
+				if showSource System.Console.WriteLine(cs as System.String)
+				csSources.Add(cs)
+
+
+			// Add supporting code for assertion testing and coverage sensor activation.
+			csSources[0] +=  @"
+static class PieTestzkyz_Assert
+{
+    public static void Assert(bool condition)
+    {
+        if(!condition)
+        {
+            throw new System.Exception();
+        }
+    }
+}
+
+static class PiezkyzCoverage
+{
+	public static int Total = 0;
+	public static int Passed = 0;
+
+	public static void PassedSensor(string guid)
+	{
+		
+	"
+			if trackSensors:
+				csSources[0] += "var writer = System.IO.File.AppendText(\\\"PassedSensors.txt\\\");"
+				csSources[0] += @"
+		writer.WriteLine(guid);
+		writer.Dispose();
+			"
+			csSources[0] += @"
+	}
+}
+
+"
+			// Compile the C# code with the C# compiler and return the result.
+			sourceArray = Array.CreateInstance(csSources[0].GetType(), csSources.Count)	
+			for i = 0; i < csSources.Count; i++:
+				sourceArray[i] = csSources[i]
+			csProvider = CSharpCodeProvider()
+			return csProvider.CompileAssemblyFromSource(options, sourceArray)
+
+

@@ -1,0 +1,176 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A unary operation expression: one operator and one operand.
+	type UnaryOperation(Expression):
+
+		// The operator: !, -, --, ++, ~
+		public OperatorType = ""
+		// If true, the operator appears before the operand.
+		public IsPre = false
+
+		// Construct a new unaryoperator expression with the given parent.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for unary operator expressions.
+		shared act DefineRules(grammar):
+			grammar.PreUnaryOperator = NonTerminal("PreUnaryOperator")
+			grammar.PreUnaryOperator.Rule = grammar.ToTerm("!") | "-" | "--" | "++" | "~"
+			grammar.MarkTransient(grammar.PreUnaryOperator)
+			grammar.PostUnaryOperator = NonTerminal("PostUnaryOperator")
+			grammar.PostUnaryOperator.Rule = grammar.ToTerm("++") | "--"
+			grammar.MarkTransient(grammar.PostUnaryOperator)
+			grammar.PostUnaryOperation = NonTerminal("PostUnaryOperation")
+			grammar.PostUnaryOperation.Rule = grammar.ExpressionRule + grammar.PostUnaryOperator
+			grammar.PreUnaryOperation = NonTerminal("PreUnaryOperation")
+			grammar.PreUnaryOperation.Rule = grammar.PreUnaryOperator + grammar.ExpressionRule
+			grammar.UnaryOperationRule = NonTerminal("UnaryOperation")
+			grammar.UnaryOperationRule.Rule = grammar.PostUnaryOperation
+			grammar.UnaryOperationRule.Rule |= grammar.PreUnaryOperation
+
+		// Construct a unary operator expression from the given parse node.
+		shared act Build(parser, parent, node):
+			u = UnaryOperation(parent)
+			parent.Children.Add(u)
+			// Must check if it's a pre or post operation and treat accordingly!
+			if node.Term.ToString() == "PreUnaryOperation":
+				u.IsPre = true
+				u.OperatorType = node.ChildNodes[0].FindTokenAndGetText()
+				parser.ConsumeParseTree(u, node.ChildNodes[1])
+			else:
+				u.IsPre = false
+				u.OperatorType = node.ChildNodes[1].FindTokenAndGetText()
+				parser.ConsumeParseTree(u, node.ChildNodes[0])
+
+		// Generate the C# code for this expression.
+		override func Emit():
+			source = ""
+			if IsPre:
+				source += OperatorType
+			source += Children[0].Emit()
+			if !IsPre:
+				source += OperatorType
+			return source
+
+		/*
+
+		Tests: test each unary operator, including that pre-operators perform their operation before returning the value,
+		while post operators do not.
+
+		*/
+
+
+		test BooleanNot:
+			source = @"
+module foo:
+	func bar():
+		return !true
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == false
+
+		test PreAdd1:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		++x
+		return x
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 3
+
+		test PreAdd2:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		return ++x
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 3
+
+		test PreSubtract1:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		--x
+		return x
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 1
+
+		test PreSubtract2:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		return --x
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 1
+
+		test PostAdd1:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		x++
+		return x
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 3
+
+		test PostAdd2:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		return x++
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 2
+
+		test PostSubtract1:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		x--
+		return x
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 1
+
+		test PostSubtract2:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		return x--
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 2
+
+		test BitwiseNot:
+			source = @"
+module foo:
+	func bar():
+		x = 0x00000000i
+		return ~x
+			"
+			x = TestHelper.Compile(source, false).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 0xFFFFFFFFi
+

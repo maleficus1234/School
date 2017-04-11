@@ -1,0 +1,7 @@
+﻿import System
+
+module foo:
+	void Main():
+		Hello hello = new Hello()
+		hello.Speak()
+		Console.ReadKey()

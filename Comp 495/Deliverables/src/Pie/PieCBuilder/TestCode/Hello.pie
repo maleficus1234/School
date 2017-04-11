@@ -1,0 +1,5 @@
+﻿import System
+
+class Hello:
+	void Speak():
+		Console.WriteLine("Hello world!")

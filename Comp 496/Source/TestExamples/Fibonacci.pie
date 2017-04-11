@@ -1,0 +1,26 @@
+import System
+
+module Fibonacci:
+
+	func Get(n):
+		if n < 2 return n
+		else return Get(n-1) + Get(n-2)
+
+	test Fib:
+		assert Get(0) == 0
+		assert Get(1) == 1
+		assert Get(2) == 1
+		assert Get(3) == 2
+		assert Get(4) == 3
+		assert Get(5) == 5
+		assert Get(6) == 8
+
+	act Main(args):
+		Console.WriteLine("Enter position in the Fibonacci sequence.")
+		Console.WriteLine("Use lower numbers (less than 40) as this is a brute-force algorithm.")
+		s = Console.ReadLine()
+		try:
+			n = Int32.Parse(s)
+			Console.WriteLine("The number at position " + n + " is " + Get(n))
+		catch e:
+			Console.WriteLine("Invalid input.")

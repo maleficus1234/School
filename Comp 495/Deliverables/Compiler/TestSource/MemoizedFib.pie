@@ -1,0 +1,40 @@
+import System
+import System.Collections.Generic
+
+module FibonacciTest:
+
+	List{long} memory
+
+	long Fibonacci(int x):
+
+		if x <= 1:
+			memory.Add(x)
+			return x
+		if memory.Count > x return memory[x]
+		memory.Add(Fibonacci(x-2) + Fibonacci(x-1))
+		return memory[x]
+
+	void Main():
+
+		memory = new List{long}()
+
+		bool keepRunning = true
+		while keepRunning:
+
+			Console.WriteLine("Enter which number in the Fibonacci sequence to calculate.")
+			Console.WriteLine("Sequence position should be non-negative.")
+			Console.WriteLine("This is a memoized fibonacci algorithm:")
+			Console.WriteLine("larger positions can be calculated, though really high")
+			Console.WriteLine("positions will still result in integer overflow.")
+			Console.WriteLine("Enter q to exit.")
+			String s = Console.ReadLine()
+
+			int x
+			if s == "q" keepRunning = false
+			else:
+				if Int32.TryParse(s, out x):
+					if x < 0 Console.WriteLine("\nThe number must be non-negative.\n")
+					else Console.WriteLine("\nThe number at position " + x + " is: " + Fibonacci(x) + "\n")
+				else:
+					Console.WriteLine("\nUnable to parse this number.\n")
+			memory.Clear()

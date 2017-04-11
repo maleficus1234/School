@@ -1,0 +1,92 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A case block expression within a switch block.
+	// Grammatical rules are defined in SwitchBlock.pie
+	type CaseBlock(Expression):
+
+		// The expression being tested
+		public Expression
+		// Is this the first case block in the switch block?
+		public First = false
+		// Is this the default case block in the switch block?
+		public Default = false
+		// A unique GUID for use in code coverage analysis.
+		public guid = ""
+
+		// Construct a new case block expression with the given parent.
+		new(parent):
+			base(parent)
+			this.Expression = Expression(this)
+
+		// Construct a new case block expression from the given parse node.
+		shared act Build(parser, parent, node):
+			c = CaseBlock(parent)
+			parent.Children.Add(c)
+			// Generate and record a guid for code coverage analysis later.
+			c.guid = System.Guid.NewGuid().ToString()
+			writer = System.IO.File.AppendText("AllSensors.txt")
+			writer.WriteLine(c.guid.ToString())
+			writer.Dispose()
+			// Get the expression being tested
+			parser.ConsumeParseTree(c.Expression, node.ChildNodes[1])
+			// Is this the default case? Needs to be treated differently as
+			// nothing is being tested for that one.
+			if node.ChildNodes[0].Term.ToString() == "else":
+				for child in node.ChildNodes[1].ChildNodes:
+					parser.ConsumeParseTree(c, child)
+			else:
+				for child in node.ChildNodes[2].ChildNodes:
+					parser.ConsumeParseTree(c, child)
+			if parent.Children.Count == 1:
+				c.First = true
+			if node.ChildNodes[0].Term.ToString() == "else":
+				c.Default = true
+
+		// Refine the expression prior to generating C#
+		override act Refine():
+			ScopeStack.Push(Scope)
+			Expression.Refine()
+			base.Refine()
+			ScopeStack.Pop(Scope)
+
+		// Generate the C# code for this expression
+		override func Emit():
+			source = ""
+			if First:
+				source += "if("
+				source += Parent.Expression.Emit()
+				source += "=="
+				source += Expression.Emit()
+				source += @")\n"
+			else:
+				if Default:
+					source += @"else\n"
+				else:
+					source += @"else if("
+					source += Parent.Expression.Emit()
+					source += "=="
+					source += Expression.Emit()
+					source += @")\n"
+			source += @"{\n"
+			source += "PiezkyzCoverage.PassedSensor(\\\"" + guid + "\\\");"
+			for child in Children:
+				source += child.Emit()
+			source += @"}\n"
+			return source
+
+		/*
+
+		Tests are covered in SwitchBlock.pie
+
+		*/

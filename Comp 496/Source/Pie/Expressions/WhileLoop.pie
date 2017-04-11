@@ -1,0 +1,90 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A while loop expression
+	type WhileLoop(Expression):
+
+		// The condition being tested for continuation of the while loop.
+		public Condition
+		// A unique guid assigned to the while loop for code coverage analysis.
+		public guid = ""
+
+		// Construct a new while loop expression with the given parent expression.
+		new(parent):
+			base(parent)
+			Condition = Expression(parent)
+
+		// Define the grammatical rules for a while loop expression.
+		shared act DefineRules(grammar):
+			grammar.WhileLoopRule = NonTerminal("WhileLoop")
+			grammar.WhileLoopRule.Rule = grammar.ToTerm("while") + grammar.ExpressionRule + ":" + grammar.Eos + grammar.MethodBody
+			grammar.WhileLoopRule.Rule |= grammar.ToTerm("while") + grammar.ExpressionRule + grammar.Statement
+
+		// Construct a while loop from the given parse node.
+		shared act Build(parser, parent, node):
+			w = WhileLoop(parent)
+			w.guid = System.Guid.NewGuid().ToString()
+			writer = System.IO.File.AppendText("AllSensors.txt")
+			writer.WriteLine(w.guid.ToString())
+			writer.Dispose()
+			parent.Children.Add(w)
+			parser.ConsumeParseTree(w.Condition, node.ChildNodes[1])
+			parser.ConsumeParseTree(w, node.ChildNodes[2])
+
+		// Generate the C# code for this expression.
+		override func Emit():
+			source = ""
+			source += " while("
+			source += Condition.Emit()
+			source += @") {\n"
+			source += "PiezkyzCoverage.PassedSensor(\\\"" + guid + "\\\");"
+			source += base.Emit()
+			source += @"}\n"
+			return source
+
+		// Test that a single line while loop works correctly.
+		test SingleLine:
+			source = @"
+type foo:
+	shared func bar():
+		x = 0
+		while x < 10 x += 1
+		return x
+			"
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 10
+
+		// Test that a multi line while loop works correctly.
+		test MultiLine:
+			source = @"
+type foo:
+	shared func bar():
+		x = 0
+		while x < 10: 
+			x += 1
+		return x
+			"
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 10

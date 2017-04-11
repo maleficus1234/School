@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pie", "Pie\Pie.csproj", "{553C0255-8373-4F35-A363-CCD2583B22A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pie.Tests", "Pie.Tests\Pie.Tests.csproj", "{9FEDFA54-0A5F-474B-83DF-D871FD7A908F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PieCBuilder", "PieCBuilder\PieCBuilder.csproj", "{378E3B62-9316-4789-8678-26159BD8C3F7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{553C0255-8373-4F35-A363-CCD2583B22A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{553C0255-8373-4F35-A363-CCD2583B22A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{553C0255-8373-4F35-A363-CCD2583B22A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{553C0255-8373-4F35-A363-CCD2583B22A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FEDFA54-0A5F-474B-83DF-D871FD7A908F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FEDFA54-0A5F-474B-83DF-D871FD7A908F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FEDFA54-0A5F-474B-83DF-D871FD7A908F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FEDFA54-0A5F-474B-83DF-D871FD7A908F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{378E3B62-9316-4789-8678-26159BD8C3F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{378E3B62-9316-4789-8678-26159BD8C3F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{378E3B62-9316-4789-8678-26159BD8C3F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{378E3B62-9316-4789-8678-26159BD8C3F7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

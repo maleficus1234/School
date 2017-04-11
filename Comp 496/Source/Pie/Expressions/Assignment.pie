@@ -1,0 +1,209 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// An assignment operation expression: =, :=, +=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=
+	type Assignment(Expression):
+
+		// The left operand: the one being assigned to
+		public Left
+		// The right operand: the one being assigned
+		public Right
+		// True if this is a variable initialization (requires insertion of the "dynamic" keyword before the variable name)
+		public Init = false
+		// The assignment type: =, :=, +=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>=
+		public AssignmentType = ""
+
+		// Constructs a new Assignment expression with the given parent expression
+		new(parent):
+			base(parent)
+			Left = Expression(this)
+			Right = Expression(this)
+
+		// Define the grammatical rules for an assignment expression.
+		shared act DefineRules(grammar):
+			grammar.AssignmentOperator = NonTerminal("AssignmentOperator")
+			grammar.AssignmentOperator.Rule = grammar.ToTerm("=") | ":=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>="
+			grammar.MarkTransient(grammar.AssignmentOperator)
+
+			grammar.AssignmentRule = NonTerminal("Assignment")
+			grammar.AssignmentRule.Rule = grammar.ExpressionRule + grammar.AssignmentOperator + grammar.ExpressionRule
+		
+		// Build a new Assignment from the given parse node.
+		shared act Build(parser, parent, node):
+			c = Assignment(parent)
+			parent.Children.Add(c)
+			// Build the left operand
+			parser.ConsumeParseTree(c.Left, node.ChildNodes[0])
+			// Get the operator type
+			c.AssignmentType = node.ChildNodes[1].FindTokenAndGetText()
+			// Build the right operand
+			parser.ConsumeParseTree(c.Right, node.ChildNodes[2])
+
+		// Perform any necessary refinments to convert to C#.
+		// Determine if this is an initialization, requiring insertion of "dynamic" before the variable name.
+		// For example, "foo = 1" becomes "dynamic foo = 1" if it's the first appearance of this variable.
+		override act Refine():
+			q = Left.Children[0] as Identifier
+			if q != null:
+				// Check the scope stack to see if this variable exists. If it does not, add it to the scope
+				// flag this expression as an initialization.
+				if !ScopeStack.VariableInScope(q.Name):
+					Init = true
+					v = Variable()
+					v.FullName = q.Name
+					ScopeStack.Scopes[ScopeStack.Scopes.Count - 1].Variables.Add(v)
+			Right.Refine()
+			Left.Refine()
+			base.Refine()
+
+		// Propagate any import declarations through to the left and right operands: this is so they are aware
+		// of what types have been imported into this source file.
+		override act PropagateImport(i):
+			Left.PropagateImport(i)
+			Right.PropagateImport(i)
+			base.PropagateImport(i)
+
+		// Generate the C# code for this expression.
+		override func Emit():
+			source = ""
+			if Init:
+				source += " dynamic "
+			source += Left.Emit()
+			source += AssignmentType
+			source += Right.Emit()
+			return source
+
+		/////////////////////////////////////////////////////////////////////////////////////
+		// Tests: each tests that an assignment operator works as intended
+		/////////////////////////////////////////////////////////////////////////////////////
+
+		test Simple:
+			source = @"
+module foo:
+	func bar():
+		x = 123
+		return x
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 123
+
+		test Add:
+			source = @"
+module foo:
+	func bar():
+		x = 2
+		x += 3
+		return x
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 5
+
+		test Subtract:
+			source = @"
+module foo:
+	func bar():
+		x = 3
+		x -= 2
+		return x
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 1
+
+		test Multiply:
+			source = @"
+module foo:
+	func bar():
+		x = 3
+		x *= 4
+		return x
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 12
+
+		test Divide:
+			source = @"
+module foo:
+	func bar():
+		x = 10
+		x /= 2
+		return x
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 5
+
+		test Modulo:
+			source = @"
+module foo:
+	func bar():
+		x = 11
+		x %= 3
+		return x
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 2
+
+		test And:
+			source = @"
+module foo:
+	func bar():
+		x = 0x0c
+		x &= 0x06
+		return x
+			"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 0x00000004
+
+		test Or:
+			source = @"
+module foo:
+	func bar():
+		x = 0x0c
+		x |= 0x06
+		return x
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 0x0000000e
+
+		test Xor:
+			source = @"
+module foo:
+	func bar():
+		x = 0x0c
+		x ^= 0x06
+		return x
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 0x0000000a
+
+		test ShiftLeft:
+			source = @"
+module foo:
+	func bar():
+		x = 1000
+		x <<= 4i
+		return x
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 16000
+
+		test ShiftRight:
+			source = @"
+module foo:
+	func bar():
+		x = 1000
+		x >>= 4i
+		return x
+		"
+			x = TestHelper.Compile(source).CompiledAssembly.GetType("foo").GetMethod("bar").Invoke(null, null)
+			assert x == 62
+

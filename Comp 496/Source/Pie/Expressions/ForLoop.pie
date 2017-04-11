@@ -1,0 +1,118 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A C#/C++ style for loop with initializer, conditional, and step components.
+    type ForLoop(Expression):
+
+		// The variable initialization expression.
+		public Initializer
+		// The conditional that constrains this for loop
+		public Conditional
+		// The step by which this for loop increments.
+		public Step
+		// The guid used to uniquely identify this expression for code coverage analysis.
+		public guid = ""
+
+		// Construct a new for loop expression with the given parent expression.
+		new(parent):
+			base(parent)
+			// Create stubs for these components of this expression.
+			Initializer = Expression(parent)
+			Conditional = Expression(parent)
+			Step = Expression(parent)
+
+		// Define the grammatical rules of a for loop expression.
+		shared act DefineRules(grammar):
+			grammar.ForLoopRule = NonTerminal("ForLoop")
+			grammar.ForLoopRule.Rule = grammar.ToTerm("for") + grammar.Statement + grammar.Statement + grammar.Statement + ":" + grammar.Eos + grammar.MethodBody
+			grammar.ForLoopRule.Rule |= grammar.ToTerm("for") + grammar.Statement + grammar.Statement + grammar.Statement + grammar.Statement
+
+		// Build a for loop expression from the given parse tree node.
+		shared act Build(parser, parent, node):
+			f = ForLoop(parent)
+			// Assign a unique guid to this expression for code coverage analysis
+			f.guid = System.Guid.NewGuid().ToString()
+			// Write the unique guid to a file for reference after compilation.
+			writer = System.IO.File.AppendText("AllSensors.txt")
+			writer.WriteLine(f.guid.ToString())
+			writer.Dispose()
+			parent.Children.Add(f)
+			// Build the components of the for loop from their respective nodes.
+			parser.ConsumeParseTree(f.Initializer, node.ChildNodes[1])
+			parser.ConsumeParseTree(f.Conditional, node.ChildNodes[2])
+			parser.ConsumeParseTree(f.Step, node.ChildNodes[3])
+			parser.ConsumeParseTree(f, node.ChildNodes[4])
+
+		// Refine each of the components of the for loop.
+		// The scope gets pushed and popped to ensure proper scoping of variables
+		// within the body of the for loop.
+		override act Refine():
+			ScopeStack.Push(Scope)
+			Initializer.Refine()
+			Conditional.Refine()
+			Step.Refine()
+			base.Refine()
+			ScopeStack.Pop(Scope)
+
+		// Emit the C# code for this expression.
+		override func Emit():
+			source = ""
+			source += "for("
+			source += Initializer.Emit()
+			source += Conditional.Emit()
+			source += Step.Emit()
+			source = source.Substring(0, source.Length - 2)
+			source += @")\n"
+			source += @"{\n"
+			source += "PiezkyzCoverage.PassedSensor(\\\"" + guid + "\\\");"
+			for child in Children:
+				source += child.Emit()
+			source += @"}\n"
+			return source
+
+		// Test that a single line for loop works correctly.
+		test For1:
+			source = @"
+type foo:
+	shared func bar():
+		x = 0
+		for i = 0; i < 10; i+=1 x=i
+		return x
+			"
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 9
+
+		// Test that a multi line for loop works correctly.
+		test For2:
+			source = @"
+type foo:
+	shared func bar():
+		x = 0
+		for i = 0; i < 10; i+=1:
+			x=i
+		return x
+			"
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == 9

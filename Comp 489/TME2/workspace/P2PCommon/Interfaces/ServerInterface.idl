@@ -1,0 +1,22 @@
+module P2PCommon
+{
+  typedef sequence<string> Strings; 
+  interface ServerServant
+  {
+  	string sayHello();
+  	
+	boolean authorize(in string username, in string password);
+	
+	void updateAddress(in string username, in string ip, in long port);
+	
+	void share(in string username, in string filename);
+	
+	boolean isShared(in string username, in string filename);
+
+  	Strings getSharedFiles(in string username);
+  	
+  	void stopShare(in string username, in string filename);
+  	
+  	Strings findFile(in string username, in string filename);
+  };
+};

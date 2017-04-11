@@ -1,0 +1,115 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing 
+import Pie.Expressions
+import System.CodeDom.Compiler
+
+namespace Pie:
+
+	// Wraps the parser tool provided by the Irony.NET library.
+	type IronyParser:
+
+		// The parser provided by Irony.NET.
+		parser
+
+		// Constructs a new IronyParser using the grammar defined for Pie.
+		new():
+			parser = Parser(PieGrammar())
+
+		// Parses the given source code string and returns an Expression tree
+		// representation of it.
+		func Parse(source):
+			root = Expression(null)
+			tree = parser.Parse(source)
+			if tree.ParserMessages.Count > 0:
+				for error in tree.ParserMessages:
+					System.Console.WriteLine(error.Location + ":" + error.Message)
+				return null
+			else ConsumeParseTree(root, tree.Root)
+			return root
+
+		// Recursively walk over the parse tree and build an Expression tree from it.
+		act ConsumeParseTree(parent, node):
+			parentKey = node.Term.ToString()
+			if !InvokeBuild(parent, node):
+				for childNode in node.ChildNodes:
+					key = childNode.Term.ToString()
+					if !InvokeBuild(parent, childNode):
+						ConsumeParseTree(parent, childNode)
+
+		// Invoke the appropriate Build method for the expression, if one exists.
+		func InvokeBuild(parent, node):
+			switch node.Term.ToString():
+				case "NamespaceDeclaration":
+					NamespaceDeclaration.Build(this, parent, node)
+				case "ImportDeclaration":
+					ImportDeclaration.Build(this, parent, node)
+				case "QualifiedImport":
+					QualifiedImport.Build(this, parent, node)
+				case "QualifiedIdentifier":
+					QualifiedIdentifier.Build(this, parent, node)
+				case "Identifier":
+					Identifier.Build(this, parent, node)
+				case "TypeDeclaration":
+					TypeDeclaration.Build(this, parent, node)
+				case "MethodDeclaration":
+					MethodDeclaration.Build(this, parent, node)
+				case "ConstructorDeclaration":
+					MethodDeclaration.Build(this, parent, node)
+				case "ReturnStatement":
+					ReturnStatement.Build(this, parent, node)
+				case "Literal":
+					Literal.Build(this, parent, node)
+				case "Parameter":
+					Parameter.Build(this, parent, node)
+				case "Assignment":
+					Assignment.Build(this, parent, node)
+				case "BinaryOperation":
+					BinaryOperation.Build(this, parent, node)
+				case "ReservedExpression":
+					ReservedExpression.Build(this, parent, node)
+				case "IfConditional":
+					IfConditional.Build(this, parent, node)
+				case "ForLoop":
+					ForLoop.Build(this, parent, node)
+				case "ForEachLoop":
+					ForEachLoop.Build(this, parent, node)
+				case "Statement":
+					Statement.Build(this, parent, node)
+				case "MethodInvocation":
+					MethodInvocation.Build(this, parent, node)
+				case "AccessedExpression":
+					AccessedExpression.Build(this, parent, node)
+				case "WhileLoop":
+					WhileLoop.Build(this, parent, node)
+				case "IndexedIdentifier":
+					IndexedIdentifier.Build(this, parent, node)
+				case "FieldDeclaration":
+					FieldDeclaration.Build(this, parent, node)
+				case "SwitchBlock":
+					SwitchBlock.Build(this, parent, node)
+				case "CaseBlock":
+					CaseBlock.Build(this, parent, node)
+				case "PreUnaryOperation":
+					UnaryOperation.Build(this, parent, node)
+				case "PostUnaryOperation":
+					UnaryOperation.Build(this, parent, node)
+				case "TestDeclaration":
+					TestDeclaration.Build(this, parent, node)
+				case "AssertStatement":
+					AssertStatement.Build(this, parent, node)
+				case "ParenedExpression":
+					ParenedExpression.Build(this, parent, node)
+				case "ExceptionBlock":
+					ExceptionBlock.Build(this, parent, node)
+				case "ThrowStatement":
+					ThrowStatement.Build(this, parent, node)
+				else:
+					return false
+			return true

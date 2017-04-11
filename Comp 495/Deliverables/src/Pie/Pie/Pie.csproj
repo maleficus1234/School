@@ -1,0 +1,178 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{553C0255-8373-4F35-A363-CCD2583B22A5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Pie</RootNamespace>
+    <AssemblyName>Pie</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <LangVersion>5</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>PieSign.key.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Irony, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\Irony.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CodeDom\AssignmentEmitter.cs" />
+    <Compile Include="CodeDom\ClassEmitter.cs" />
+    <Compile Include="CodeDom\ClassVariableEmitter.cs" />
+    <Compile Include="CodeDom\CodeDomEmitter.cs" />
+    <Compile Include="CodeDom\IfBlockEmitter.cs" />
+    <Compile Include="CodeDom\ConstructorEmitter.cs" />
+    <Compile Include="CodeDom\DelegateEmitter.cs" />
+    <Compile Include="CodeDom\EnumEmitter.cs" />
+    <Compile Include="CodeDom\EventEmitter.cs" />
+    <Compile Include="CodeDom\ExceptionHandlerEmitter.cs" />
+    <Compile Include="CodeDom\IndexedIdentifierEmitter.cs" />
+    <Compile Include="CodeDom\InstantiationEmitter.cs" />
+    <Compile Include="CodeDom\InterfaceEmitter.cs" />
+    <Compile Include="CodeDom\LiteralEmitter.cs" />
+    <Compile Include="CodeDom\LoopEmitter.cs" />
+    <Compile Include="CodeDom\MethodEmitter.cs" />
+    <Compile Include="CodeDom\OperatorEmitter.cs" />
+    <Compile Include="CodeDom\PropertyEmitter.cs" />
+    <Compile Include="CodeDom\ReturnEmitter.cs" />
+    <Compile Include="CodeDom\RootEmitter.cs" />
+    <Compile Include="CodeDom\NamespaceEmitter.cs" />
+    <Compile Include="CodeDom\SwitchEmitter.cs" />
+    <Compile Include="CompilerErrors.cs" />
+    <Compile Include="Expressions\Accessibility.cs" />
+    <Compile Include="Expressions\Interface.cs" />
+    <Compile Include="Expressions\Parameters.cs" />
+    <Compile Include="Expressions\Assignment.cs" />
+    <Compile Include="Expressions\AssignmentType.cs" />
+    <Compile Include="Expressions\BinaryOperatorType.cs" />
+    <Compile Include="Expressions\Class.cs" />
+    <Compile Include="Expressions\ClassVariable.cs" />
+    <Compile Include="Expressions\Constructor.cs" />
+    <Compile Include="Expressions\DelegateDeclaration.cs" />
+    <Compile Include="Expressions\Enum.cs" />
+    <Compile Include="Expressions\EnumConstant.cs" />
+    <Compile Include="Expressions\Event.cs" />
+    <Compile Include="Expressions\ExceptionHandler.cs" />
+    <Compile Include="Expressions\ExplicitVariableDeclaration.cs" />
+    <Compile Include="Expressions\Expression.cs" />
+    <Compile Include="Expressions\ForLoop.cs" />
+    <Compile Include="Expressions\IfBlock.cs" />
+    <Compile Include="Expressions\Import.cs" />
+    <Compile Include="Expressions\IndexedIdentifier.cs" />
+    <Compile Include="Expressions\Instantiation.cs" />
+    <Compile Include="Expressions\Literal.cs" />
+    <Compile Include="Expressions\MethodDeclaration.cs" />
+    <Compile Include="Expressions\MethodInvocation.cs" />
+    <Compile Include="Expressions\Namespace.cs" />
+    <Compile Include="Expressions\BinaryOperator.cs" />
+    <Compile Include="Expressions\DirectionedParameter.cs" />
+    <Compile Include="Expressions\Property.cs" />
+    <Compile Include="Expressions\Return.cs" />
+    <Compile Include="Expressions\Root.cs" />
+    <Compile Include="Expressions\SwitchBlock.cs" />
+    <Compile Include="Expressions\Throw.cs" />
+    <Compile Include="Expressions\UnaryOperator.cs" />
+    <Compile Include="Expressions\VariableReference.cs" />
+    <Compile Include="Expressions\WhileLoop.cs" />
+    <Compile Include="IronyParsing\ClassBuilder.cs" />
+    <Compile Include="IronyParsing\ConstructorBuilder.cs" />
+    <Compile Include="IronyParsing\DelegateBuilder.cs" />
+    <Compile Include="IronyParsing\EnumBuilder.cs" />
+    <Compile Include="IronyParsing\ExceptionHandlerBuilder.cs" />
+    <Compile Include="IronyParsing\Extensions.cs" />
+    <Compile Include="IronyParsing\ForLoopBuilder.cs" />
+    <Compile Include="IronyParsing\IfBuilder.cs" />
+    <Compile Include="IronyParsing\IndexedIdentifierBuilder.cs" />
+    <Compile Include="IronyParsing\InstantiationBuilder.cs" />
+    <Compile Include="IronyParsing\InterfaceBuilder.cs" />
+    <Compile Include="IronyParsing\InterfaceMethodBuilder.cs" />
+    <Compile Include="IronyParsing\InterfacePropertyBuilder.cs" />
+    <Compile Include="IronyParsing\IronyParser.cs" />
+    <Compile Include="IronyParsing\LiteralBuilder.cs" />
+    <Compile Include="IronyParsing\MethodDeclarationBuilder.cs" />
+    <Compile Include="IronyParsing\MethodInvocationBuilder.cs" />
+    <Compile Include="IronyParsing\NamespaceBuilder.cs" />
+    <Compile Include="IronyParsing\OperatorBuilder.cs" />
+    <Compile Include="IronyParsing\PropertyBuilder.cs" />
+    <Compile Include="IronyParsing\Rules\ClassRules.cs" />
+    <Compile Include="IronyParsing\Rules\ConstructorRules.cs" />
+    <Compile Include="IronyParsing\Rules\DelegateRules.cs" />
+    <Compile Include="IronyParsing\Rules\EnumRules.cs" />
+    <Compile Include="IronyParsing\Rules\ExceptionRules.cs" />
+    <Compile Include="IronyParsing\Rules\ForLoopRules.cs" />
+    <Compile Include="IronyParsing\Rules\IfBlockRules.cs" />
+    <Compile Include="IronyParsing\Rules\InterfaceRules.cs" />
+    <Compile Include="IronyParsing\Rules\KeywordRules.cs" />
+    <Compile Include="IronyParsing\Rules\ListRules.cs" />
+    <Compile Include="IronyParsing\Rules\LiteralRules.cs" />
+    <Compile Include="IronyParsing\Rules\MethodDeclarationRules.cs" />
+    <Compile Include="IronyParsing\Rules\NamespaceRules.cs" />
+    <Compile Include="IronyParsing\Rules\OperatorRules.cs" />
+    <Compile Include="IronyParsing\Rules\PieGrammar.cs" />
+    <Compile Include="IronyParsing\Rules\PropertyRules.cs" />
+    <Compile Include="IronyParsing\Rules\SwitchRules.cs" />
+    <Compile Include="IronyParsing\Rules\WhileLoopRules.cs" />
+    <Compile Include="IronyParsing\SwitchBlockBuilder.cs" />
+    <Compile Include="IronyParsing\WhileLoopBuilder.cs" />
+    <Compile Include="Parser.cs" />
+    <Compile Include="PieCodeProvider.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Expressions\Token.cs" />
+    <Compile Include="Validation\ClassValidator.cs" />
+    <Compile Include="Validator.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="PieSign.key.snk" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

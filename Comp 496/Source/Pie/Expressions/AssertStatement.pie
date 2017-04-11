@@ -1,0 +1,72 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// An assert statement: if the condition fails, an exception is thrown.
+	type AssertStatement(Expression):
+
+		// Construct a new assert statement with the given parent expression.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for an assert statement.
+		shared act DefineRules(grammar):
+			grammar.AssertStatementRule = NonTerminal("AssertStatement")
+			grammar.AssertStatementRule.Rule = grammar.ToTerm("assert") + grammar.ExpressionRule + grammar.Eos
+
+		// Construct a new assert statement from the given parse node.
+		shared act Build(parser, parent, node):
+			a = AssertStatement(parent)
+			parent.Children.Add(a)
+			// Get the expression being asserted.
+			parser.ConsumeParseTree(a, node.ChildNodes[1])
+
+		// Generate the C# code for the assert statement.
+		override func Emit():
+			source = ""
+			source += @"PieTestzkyz_Assert.Assert("
+			source += Children[0].Emit()
+			source += @");"
+			return source
+
+		// Test that a passed assertion doesn't throw an exception.
+		test AssertPassed:
+			source = @"
+module foo:
+	func bar():
+		try:
+			assert true
+			return 1234
+		catch e:
+			return 1337
+		return 1
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null) == 1234
+
+		// Test that a failed assertion throws an exception.
+		test AssertFailed:
+			source = @"
+module foo:
+	func bar():
+		try:
+			assert false
+		catch e:
+			return 1337
+		return 1
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m.Invoke(null, null) == 1337

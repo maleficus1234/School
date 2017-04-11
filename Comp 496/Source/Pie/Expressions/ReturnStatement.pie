@@ -1,0 +1,59 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A return expression: "return 1234"
+	type ReturnStatement(Expression):
+
+		// Construct a new return expression with the given parent.
+		new(parent):
+			base(parent)
+
+		// Define the grammatical rules for a return expression.
+		shared act DefineRules(grammar):
+			grammar.ReturnStatementRule = NonTerminal("ReturnStatement")
+			grammar.ReturnStatementRule.Rule = grammar.ToTerm("return") + grammar.Eos
+			grammar.ReturnStatementRule.Rule |= grammar.ToTerm("return") + grammar.ExpressionRule + grammar.Eos
+
+		// Construct a new return expression from the given parse node.
+		shared act Build(parser, parent, node):
+			r = ReturnStatement(parent)
+			parent.Children.Add(r)
+			if node.ChildNodes.Count > 1:
+				parser.ConsumeParseTree(r, node.ChildNodes[1])
+
+		// Generate the C# code for this expression
+		override func Emit():
+			source = " return "
+			source += base.Emit()
+			source += @";\n"
+			return source
+
+		// Test that a return expression works correctly
+		test Return:
+			source = @"
+module foo:
+	func bar():
+		return 1234
+
+			"
+
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x is int
+			assert x == 1234
+

@@ -1,0 +1,36 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A statement expression. This is an expression that can stand on it's own in code.
+	// Only necessary to ensure that statements are always followed by a semi-colon, to
+	// make C# happy. Typically just encapsulates another expression, and appends a semi-colon
+	// when outputing the C# code.
+	type Statement(Expression):
+
+		// Construct a new statement with the given parent expression.
+		new(parent):
+			base(parent)
+
+		// Construct a new statement from the given parse node.
+		shared act Build(parser, parent, node):
+			s = Statement(parent)
+			parent.Children.Add(s)
+			parser.ConsumeParseTree(s, node.ChildNodes[0])
+
+		// Generate the C# code for this expression.
+		override func Emit():
+			source = ""
+			source += base.Emit()
+			if !this.IsEnum:
+				source += @";\n"
+			return source

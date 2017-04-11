@@ -1,0 +1,208 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// An if conditional expression
+	type IfConditional(Expression):
+
+		// The conditional of the expression
+		public Conditional
+		// The set of statements in the if block
+		public IfBlock
+		// The set of statements in the else block
+		public ElseBlock
+
+		// The guids of the if and else blocks, used for code coverage analysis
+		ifguid = ""
+		elseguid = ""
+
+		// Construct a new if conditional expression with the given parent expression.
+		new(parent):
+			base(parent)
+			// Create stubs for each of the components of the if statement.
+			Conditional = Expression(this)
+			IfBlock = Expression(this)
+			ElseBlock = Expression(this)
+
+		// Define the grammatical rules of an if conditional expression.
+		shared act DefineRules(grammar):
+			grammar.IfConditionalRule = NonTerminal("IfConditional")
+			grammar.IfConditionalRule.Rule = grammar.ToTerm("if") + grammar.ExpressionRule + grammar.Statement
+			grammar.IfConditionalRule.Rule |= grammar.ToTerm("if") + grammar.ExpressionRule + ":" + grammar.Eos + grammar.MethodBody
+			grammar.IfConditionalRule.Rule |= grammar.ToTerm("if") + grammar.ExpressionRule + grammar.Statement + grammar.ToTerm("else") + grammar.Statement
+			grammar.IfConditionalRule.Rule |= grammar.ToTerm("if") + grammar.ExpressionRule + grammar.Statement + grammar.ToTerm("else") + ":" + grammar.Eos + grammar.MethodBody
+			grammar.IfConditionalRule.Rule |= grammar.ToTerm("if") + grammar.ExpressionRule + ":" + grammar.Eos + grammar.MethodBody + grammar.ToTerm("else") + grammar.Statement
+			grammar.IfConditionalRule.Rule |= grammar.ToTerm("if") + grammar.ExpressionRule + ":" + grammar.Eos + grammar.MethodBody + grammar.ToTerm("else") + ":" + grammar.Eos + grammar.MethodBody
+
+		// Construct a new if conditional statement from the given parse node.
+		shared act Build(parser, parent, node):
+			i = IfConditional(parent)
+			// Give the if conditional body a unique guid for code coverage analysis.
+			i.ifguid = System.Guid.NewGuid().ToString()
+			// Write the unique guid to file for later reference.
+			writer = System.IO.File.AppendText("AllSensors.txt")
+			writer.WriteLine(i.ifguid.ToString())
+			writer.Dispose()
+			parent.Children.Add(i)
+			// Build the components of the expression from their respective nodes.
+			parser.ConsumeParseTree(i.Conditional, node.ChildNodes[1])
+			parser.ConsumeParseTree(i.IfBlock, node.ChildNodes[2])
+			if node.ChildNodes.Count > 3:
+				// Create a unique guid for the else block, and write it to file.
+				i.elseguid = System.Guid.NewGuid().ToString()
+				writer = System.IO.File.AppendText("AllSensors.txt")
+				writer.WriteLine(i.elseguid.ToString())
+				writer.Dispose()
+				parser.ConsumeParseTree(i.ElseBlock, node.ChildNodes[4])
+
+		// Refine the if and else components, making sure to push and pop their scopes
+		// to ensure variable correctness.
+		override act Refine():
+			ScopeStack.Push(Scope)
+			Conditional.Refine()
+			IfBlock.Refine()
+			ScopeStack.Pop(Scope)
+			ScopeStack.Push(ElseBlock.Scope)
+			ElseBlock.Refine()
+			ScopeStack.Pop(ElseBlock.Scope)
+
+		// Propagate the import declarations to the components of the if conditional expression.
+		override act PropagateImport(i):
+			Conditional.PropagateImport(i)
+			IfBlock.PropagateImport(i)
+			ElseBlock.PropagateImport(i)
+			base.PropagateImport(i)
+
+		// Emit the C# code for the expression.
+		override func Emit():
+			source = ""
+			source += " if("
+			source += Conditional.Emit()
+			source += @")\n"
+			source += @"{\n"
+			source += "PiezkyzCoverage.PassedSensor(\\\"" + ifguid + "\\\");"
+			source += IfBlock.Emit()
+			source += @"}\n"
+			if ElseBlock.Children.Count > 0:
+				source += @"else\n"
+				source += @"{\n"
+				source += "PiezkyzCoverage.PassedSensor(\\\"" + elseguid + "\\\");"
+				source += ElseBlock.Emit()
+				source += @"}\n"
+			return source
+
+		// Test a simple single line if expression.
+		test SimpleSameLine:
+			source = @"
+type foo:
+	shared func bar():
+		if true return true
+		return false
+			"
+			result = TestHelper.Compile(source, false)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		// Test a simple multi line if expression.
+		test SimpleNextLine:
+			source = @"
+type foo:
+	shared func bar():
+		if true: 
+			return true
+		return false
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		// Test that the expression works correctly when the conditional fails without an else block.
+		test BothSimple:
+			source = @"
+type foo:
+	shared func bar():
+		if false return false
+		return true
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		// Test that the expression works correctly when the conditional fails with an else block.
+		test BothNextLine:
+			source = @"
+type foo:
+	shared func bar():
+		if false:
+			return false
+		else:
+			return true
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		// Test mixing of single and multi line blocks.
+		test Mixed1:
+			source = @"
+type foo:
+	shared func bar():
+		if false:
+			return false
+		else return true
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == true
+
+		// Test mixing of single and multi line blocks.
+		test Mixed2:
+			source = @"
+type foo:
+	shared func bar():
+		if false return false
+		else:
+			return true
+			"
+			result = TestHelper.Compile(source)
+			assert result != null
+			for e in result.Errors:
+				ce = e as CompilerError
+				System.Console.WriteLine("error: " + ce.ErrorText)
+			t = result.CompiledAssembly.GetType("foo")
+			x = t.GetMethod("bar").Invoke(null, null)
+			assert x == true

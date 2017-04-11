@@ -1,0 +1,5 @@
+import System
+
+module HelloWorld:
+	void Main():
+		Console.WriteLine("Hello, world!")

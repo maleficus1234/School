@@ -1,0 +1,31 @@
+import System
+
+abstract class Animal:
+
+	protected String name
+
+	new(String name):
+		this.name = name
+
+	abstract void Speak():
+
+class Monkey(Animal):
+
+	new(String name): base(name):
+
+	override void Speak():
+		Console.WriteLine("Ook ook!")
+
+class Human(Monkey):
+
+	new(String name): base(name):
+
+	override void Speak():
+		Console.WriteLine("Hello world! My name is " + name)
+
+module Program:
+	void Main():
+		Animal monkey = new Monkey("Jibbers")
+		Animal human = new Human("Sir Harold von Rabberdasher")
+		monkey.Speak()
+		human.Speak()

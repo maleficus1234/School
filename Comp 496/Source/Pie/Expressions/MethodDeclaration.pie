@@ -1,0 +1,197 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+	
+	// A method declaration expression: declaration of the method signature, followed by it's body.
+	type MethodDeclaration(Expression):
+
+		// The list of modifiers for the method declaration (public, shared, private, virtual, etc).
+		public Modifiers = list()
+		// The type of method: act or func
+		public MethodType = ""
+		// The parameters of the method.
+		public Parameters
+		// True if this method is a constructor.
+		public CTor = false
+		// A unique guid for use in code coverage analysis later.
+		public guid = ""
+
+		// Construct a new method declaration expression from the given parent expression.
+		new(parent):
+			base(parent)
+			Parameters = Expression(this)
+
+		// Define the grammatical rules for method and constructor declarations.
+		shared act DefineRules(grammar):
+			grammar.MethodDeclarationRule = NonTerminal("MethodDeclaration")
+			grammar.MethodDeclarationRule.Rule = grammar.ModifierList + grammar.MethodType + grammar.Identifier + grammar.ToTerm("(") + grammar.ParameterList + grammar.ToTerm(")") + grammar.ToTerm(":") + grammar.Eos + grammar.MethodBody
+
+			grammar.ConstructorDeclaration = NonTerminal("ConstructorDeclaration")
+			grammar.ConstructorDeclaration.Rule = grammar.ModifierList + grammar.ToTerm("new") + grammar.ToTerm("(") + grammar.ParameterList + grammar.ToTerm(")") + grammar.ToTerm(":") + grammar.Eos + grammar.MethodBody
+
+		// Build a method declaration expression from the given parse node.
+		shared act Build(parser, parent, node):
+			m = MethodDeclaration(parent)
+			// Assign a unique guid to the expression and write it to file for
+			// use in code coverage analysis.
+			m.guid = System.Guid.NewGuid().ToString()
+			writer = System.IO.File.AppendText("AllSensors.txt")
+			writer.WriteLine(m.guid.ToString())
+			writer.Dispose()
+			parent.Children.Add(m)
+			// Get the modifiers for the declaration.
+			for modifier in node.ChildNodes[0].ChildNodes:
+				m.Modifiers.Add(modifier.FindTokenAndGetText())
+			// Get the method type
+			m.MethodType = node.ChildNodes[1].Term.ToString()
+			// Treat it differently depending on whether it's a method or constructor.
+			if m.MethodType != "new":
+				m.Name = node.ChildNodes[2].FindTokenAndGetText()
+				parser.ConsumeParseTree(m.Parameters, node.ChildNodes[3])
+				parser.ConsumeParseTree(m, node.ChildNodes[4])
+			else:
+				m.Name = parent.Name
+				parser.ConsumeParseTree(m.Parameters, node.ChildNodes[2])
+				parser.ConsumeParseTree(m, node.ChildNodes[3])
+
+
+		// Refine the method declaration prior to outputing as C# code.
+		// Make sure to push and pop the scope!
+		override act Refine():
+			ScopeStack.Push(this.Scope)
+			// Translate modifiers to their C# equivalent.
+			for i = 0; i < Modifiers.Count; i++:
+				switch Modifiers[i]:
+					case "final":
+						Modifiers[i] = "sealed"
+					case "shared":
+						Modifiers[i] = "static"
+			// Automatically make the method static if it's in a module.
+			if Parent is TypeDeclaration:
+				if Parent.ClassType == "module" && !Modifiers.Contains("static"):
+					Modifiers.Add("static")
+			// Make the method public if there's no other accessibility modifiers.
+			if !Modifiers.Contains("internal") && !Modifiers.Contains("public") && !Modifiers.Contains("private"):
+				Modifiers.Add("public")
+			// Add the parameters to the scope as variables.
+			for p in Parameters.Children:
+				p.Refine()
+				v = Variable()
+				v.FullName = p.Identifier
+				this.Scope.Variables.Add(v)
+			base.Refine()
+			ScopeStack.Pop(this.Scope)
+
+		// Emit the C# code for the expression.
+		override func Emit():
+			source = ""
+			for m in Modifiers:
+				source += m + " "
+			if MethodType != "new":
+				if MethodType == "act":
+					source += " void "
+				else:
+					source += " dynamic "
+			source += Name
+			source += "("
+			if Parameters.Children.Count > 0:
+				source += Parameters.Children[0].Emit()
+				for i = 1; i < Parameters.Children.Count; i++:
+					source += ", "
+					source += Parameters.Children[i].Emit()
+			source += ")"
+			if Children.Count > 0:
+				if Children[0].Children[0] is MethodInvocation:
+					if Children[0].Children[0].Name == "base":
+						source += " : "
+						source += Children[0].Children[0].Emit()
+			source += @"\n{\n"
+			source += "PiezkyzCoverage.PassedSensor(\\\"" + guid + "\\\");"
+			for c in Children:
+				if c is Statement:
+					m = c.Children[0]
+					if m is MethodInvocation:
+						if m.Name == "base": 
+							continue
+				source += c.Emit()
+				source += @";\n"
+			source += @"}\n"
+			return source
+
+		// Test a constructor
+		test Ctor:
+			source = @"
+type foo:
+	new():
+			"
+			result = TestHelper.Compile(source, false)
+			t = result.CompiledAssembly.GetType("foo")
+			o = System.Activator.CreateInstance(t as System.Type)
+			assert o != null
+
+		// Test that an act method declaration compiles and works!
+		test Act:
+			source = @"
+type foo:
+	act bar():
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			o = System.Activator.CreateInstance(t as System.Type)
+			m = t.GetMethod("bar")
+			assert m != null
+
+		// Test that a func with a parameter works correctly.
+		test WithParameter:
+			source = @"
+module foo:
+	func bar(x):
+		return x
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m != null
+			p = list()
+			p.Add(1234)
+			assert m.Invoke(null, p.ToArray()) == 1234
+			
+		// Test that a func with a ref parameter works correctly.
+		test WithRefParameter:
+			source = @"
+module foo:
+	func bar(ref x):
+		return x
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m != null
+			p = list()
+			p.Add(1234)
+			assert m.Invoke(null, p.ToArray()) == 1234
+
+		// Test that a func with an out parameter works correctly.
+		test WithOutParameter:
+			source = @"
+module foo:
+	func bar(out x):
+		x = 1
+		return x
+			"
+			result = TestHelper.Compile(source)
+			t = result.CompiledAssembly.GetType("foo")
+			m = t.GetMethod("bar")
+			assert m != null
+			p = list()
+			p.Add(1234)
+			assert m.Invoke(null, p.ToArray()) == 1

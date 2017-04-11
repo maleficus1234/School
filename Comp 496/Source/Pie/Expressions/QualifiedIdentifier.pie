@@ -1,0 +1,38 @@
+﻿/*
+COMP 496
+Pie Language Compiler 0.2
+Jason Bell
+3078931
+February 22, 2016
+*/
+
+import Irony.Parsing
+import System.CodeDom.Compiler
+
+namespace Pie.Expressions:
+
+	// A qualified identifier expression: foo.bar
+    type QualifiedIdentifier(Expression):
+
+		// Construct a new qualified import expression with the given parent expression
+        new(parent):
+            base(parent)
+
+		// Construct a new qualified import expression with the given parse node.
+        shared act Build(parser, parent, node):
+            i = QualifiedIdentifier(parent)
+            parent.Children.Add(i)
+            for n in node.ChildNodes: 
+                parser.ConsumeParseTree(i, n)
+
+		// Generate the C# code for this expression.
+        override func Emit():
+            return GetFullName()
+
+		// Return the fully qualified name
+        override func GetFullName():
+            name = Children[0].Name
+            for i = 1; i < Children.Count; i++:
+                name += "." + Children[i].Name
+            return name
+        
